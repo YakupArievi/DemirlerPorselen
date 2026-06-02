@@ -1,5 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Toptanci.Infrastructure.Persistence;
+using Toptanci.Infrastructure.Persistence.Interceptors;
 
 namespace Toptanci.Infrastructure;
 
@@ -9,8 +12,17 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // DbContext, repository ve diğer altyapı servisleri sonraki fazlarda buraya eklenecek.
-        // (Faz 0.2: DbContext + audit interceptor, Faz 1+: repository'ler)
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<AuditableEntityInterceptor>();
+
+        services.AddDbContext<ApplicationDbContext>((sp, options) =>
+        {
+            options.UseSqlServer(
+                configuration.GetConnectionString("DefaultConnection"),
+                sql => sql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName));
+
+            options.AddInterceptors(sp.GetRequiredService<AuditableEntityInterceptor>());
+        });
 
         return services;
     }
