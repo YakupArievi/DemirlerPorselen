@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Force | Select-Object Mode, Name; Write-Output \"---DOTNET---\"; dotnet --version; Write-Output \"---SDKS---\"; dotnet --list-sdks)",
+      "PowerShell(dotnet sln add src/Toptanci.Api/Toptanci.Api.csproj src/Toptanci.Application/Toptanci.Application.csproj src/Toptanci.Domain/Toptanci.Domain.csproj src/Toptanci.Infrastructure/Toptanci.Infrastructure.csproj)",
+      "PowerShell(dotnet add src/Toptanci.Application/Toptanci.Application.csproj reference src/Toptanci.Domain/Toptanci.Domain.csproj)",
+      "PowerShell(dotnet add src/Toptanci.Infrastructure/Toptanci.Infrastructure.csproj reference src/Toptanci.Application/Toptanci.Application.csproj)",
+      "PowerShell(dotnet add src/Toptanci.Api/Toptanci.Api.csproj reference src/Toptanci.Application/Toptanci.Application.csproj)",
+      "PowerShell(dotnet add src/Toptanci.Api/Toptanci.Api.csproj reference src/Toptanci.Infrastructure/Toptanci.Infrastructure.csproj)",
+      "PowerShell(dotnet add $app package AutoMapper)",
+      "PowerShell(dotnet add $app package FluentValidation)",
+      "PowerShell(dotnet add $app package FluentValidation.DependencyInjectionExtensions)",
+      "PowerShell(dotnet add $infra package Microsoft.EntityFrameworkCore.SqlServer)",
+      "PowerShell(dotnet add $infra package Microsoft.EntityFrameworkCore.Design)",
+      "PowerShell(dotnet add $api package Serilog.AspNetCore)",
+      "PowerShell(dotnet add $api package Microsoft.EntityFrameworkCore.Design)",
+      "PowerShell($app = \"src/Toptanci.Application/Toptanci.Application.csproj\")",
+      "PowerShell($infra = \"src/Toptanci.Infrastructure/Toptanci.Infrastructure.csproj\")",
+      "PowerShell($api = \"src/Toptanci.Api/Toptanci.Api.csproj\")",
+      "PowerShell(dotnet build *)",
+      "PowerShell(dotnet new gitignore *)",
+      "PowerShell(git *)",
+      "PowerShell(winget install *)"
+    ]
+  }
+}

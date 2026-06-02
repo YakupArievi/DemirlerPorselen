@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Toptanci.Api/Toptanci.Api.csproj" />
+    <Project Path="src/Toptanci.Application/Toptanci.Application.csproj" />
+    <Project Path="src/Toptanci.Domain/Toptanci.Domain.csproj" />
+    <Project Path="src/Toptanci.Infrastructure/Toptanci.Infrastructure.csproj" />
+  </Folder>
+</Solution>
