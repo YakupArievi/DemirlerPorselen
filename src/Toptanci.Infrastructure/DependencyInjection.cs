@@ -26,10 +26,15 @@ public static class DependencyInjection
 
             options.AddInterceptors(sp.GetRequiredService<AuditableEntityInterceptor>());
 
-            // Ledger ilişkileri (StockMovement→Variant, RefreshToken→User) zorunlu uçta soft-delete
-            // query filter'ı ile etkileşir; bu kayıtları soft-delete etmediğimiz için uyarı zararsız.
             options.ConfigureWarnings(w =>
-                w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
+            {
+                // Ledger ilişkileri (StockMovement→Variant, RefreshToken→User) zorunlu uçta soft-delete
+                // query filter'ı ile etkileşir; bu kayıtları soft-delete etmediğimiz için uyarı zararsız.
+                w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning);
+                // Dinamik query-filter + sequence ile runtime'da yanlış pozitif olabiliyor; pending-change
+                // kontrolünü 'dotnet ef migrations has-pending-model-changes' ile design-time'da yapıyoruz.
+                w.Ignore(RelationalEventId.PendingModelChangesWarning);
+            });
         });
 
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
@@ -39,6 +44,7 @@ public static class DependencyInjection
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddScoped<ISequenceGenerator, SequenceGenerator>();
         services.AddScoped<IBarcodeGenerator, BarcodeGenerator>();
 
         return services;

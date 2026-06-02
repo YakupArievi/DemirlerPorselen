@@ -92,12 +92,10 @@ public sealed class VariantService : IVariantService
         entity.Pattern = request.Pattern;
         entity.Size = request.Size;
         entity.KoliIciAdet = request.KoliIciAdet;
-        entity.PurchasePrice = request.PurchasePrice;
-        entity.SalePrice = request.SalePrice;
         entity.MinStock = request.MinStock;
         entity.ImageUrl = request.ImageUrl;
         entity.IsActive = request.IsActive;
-        // Barkod ve AverageCost burada değişmez (barkod sistem-üretimi, maliyet girişte güncellenir)
+        // Fiyatlar burada DEĞİŞMEZ (yalnızca Patron, PriceService ile). Barkod ve AverageCost da değişmez.
         await _db.SaveChangesAsync(ct);
 
         return await GetByIdAsync(entity.Id, ct);

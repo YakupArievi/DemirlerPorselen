@@ -36,8 +36,6 @@ public sealed record UpdateVariantRequest(
     string? Pattern,
     string? Size,
     int KoliIciAdet,
-    decimal PurchasePrice,
-    decimal SalePrice,
     int MinStock,
     string? ImageUrl,
     bool IsActive);
@@ -73,8 +71,24 @@ public sealed class UpdateVariantValidator : AbstractValidator<UpdateVariantRequ
     public UpdateVariantValidator()
     {
         RuleFor(x => x.KoliIciAdet).GreaterThan(0);
+        RuleFor(x => x.MinStock).GreaterThanOrEqualTo(0);
+    }
+}
+
+/// <summary>Fiyat değişikliği (yalnızca Patron/Admin). Fiyat geçmişine kaydedilir.</summary>
+public sealed record ChangePriceRequest(decimal PurchasePrice, decimal SalePrice);
+
+public sealed record PriceHistoryDto(
+    Guid Id, Guid VariantId,
+    decimal OldPurchasePrice, decimal NewPurchasePrice,
+    decimal OldSalePrice, decimal NewSalePrice,
+    DateTime ChangedAt, string? ChangedBy);
+
+public sealed class ChangePriceValidator : AbstractValidator<ChangePriceRequest>
+{
+    public ChangePriceValidator()
+    {
         RuleFor(x => x.PurchasePrice).GreaterThanOrEqualTo(0);
         RuleFor(x => x.SalePrice).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.MinStock).GreaterThanOrEqualTo(0);
     }
 }

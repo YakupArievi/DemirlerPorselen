@@ -17,8 +17,6 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     {
     }
 
-    public const string BarcodeSequenceName = "BarcodeSequence";
-
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
@@ -31,6 +29,15 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<StockItem> StockItems => Set<StockItem>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<AccountTransaction> AccountTransactions => Set<AccountTransaction>();
+    public DbSet<Sale> Sales => Set<Sale>();
+    public DbSet<SaleLine> SaleLines => Set<SaleLine>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<SaleReturn> SaleReturns => Set<SaleReturn>();
+    public DbSet<SaleReturnLine> SaleReturnLines => Set<SaleReturnLine>();
+    public DbSet<PriceHistory> PriceHistories => Set<PriceHistory>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -38,8 +45,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         // Bu assembly'deki tüm IEntityTypeConfiguration<T> sınıflarını uygula
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
-        // Barkod üretimi için monoton sıra
-        modelBuilder.HasSequence<long>(BarcodeSequenceName).StartsAt(1).IncrementsBy(1);
+        // Barkod ve satış numarası için monoton sıralar
+        modelBuilder.HasSequence<long>(SequenceNames.Barcode).StartsAt(1).IncrementsBy(1);
+        modelBuilder.HasSequence<long>(SequenceNames.SaleNumber).StartsAt(1000).IncrementsBy(1);
 
         // ISoftDelete uygulayan tüm entity'lere global query filter ekle (e => !e.IsDeleted)
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())

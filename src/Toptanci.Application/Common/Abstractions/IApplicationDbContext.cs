@@ -20,5 +20,14 @@ public interface IApplicationDbContext
     DbSet<StockItem> StockItems { get; }
     DbSet<StockMovement> StockMovements { get; }
 
+    DbSet<Customer> Customers { get; }
+    DbSet<AccountTransaction> AccountTransactions { get; }
+    DbSet<Sale> Sales { get; }
+    DbSet<SaleLine> SaleLines { get; }
+    DbSet<Payment> Payments { get; }
+    DbSet<SaleReturn> SaleReturns { get; }
+    DbSet<SaleReturnLine> SaleReturnLines { get; }
+    DbSet<PriceHistory> PriceHistories { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

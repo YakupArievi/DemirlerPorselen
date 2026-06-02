@@ -77,6 +77,7 @@ dotnet run --project src/Toptanci.Api
 
 - **Faz 0** — ✅ İskelet (0.1), ortak altyapı (0.2), auth (0.3)
 - **Faz 1** — ✅ Ürün & stok çekirdeği (varyant, barkod, depo, ledger, ürün girişi)
+- **Faz 2** — ✅ Satış & cari (müşteri, cari ledger/ekstre, satış, ödeme, iptal/iade, fiyat geçmişi)
 - **Faz 2** — Satış & cari (müşteri, cari hesap, satış, ödeme, iptal/iade, fiyat geçmişi)
 - **Faz 3** — Kırık ürün, stok sayımı, depo transferi
 - **Faz 4** — Raporlama (dashboard, PDF)
