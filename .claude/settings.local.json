@@ -20,7 +20,8 @@
       "PowerShell(dotnet build *)",
       "PowerShell(dotnet new gitignore *)",
       "PowerShell(git *)",
-      "PowerShell(winget install *)"
+      "PowerShell(winget install *)",
+      "PowerShell(dotnet add *)"
     ]
   }
 }

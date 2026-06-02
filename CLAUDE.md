@@ -43,6 +43,26 @@ dotnet run --project src/Toptanci.Api
 
 > Not: Solution dosyası .NET 10'un yeni XML formatında: `Toptanci.slnx`.
 
+## Veritabanı & Migration
+
+- Geliştirmede **LocalDB** kullanılıyor: `Server=(localdb)\MSSQLLocalDB;Database=ToptanciDb`.
+- Uygulama başlarken `ApplicationDbContextInitializer` migration'ları otomatik uygular ve
+  hiç kullanıcı yoksa varsayılan admin'i tohumlar.
+- Migration ekleme (Infrastructure'da, design-time factory sayesinde DB gerektirmez):
+  ```powershell
+  dotnet ef migrations add <Ad> --project src/Toptanci.Infrastructure --startup-project src/Toptanci.Api --output-dir Persistence/Migrations
+  ```
+
+## Kimlik & Yetki (Faz 0.3)
+
+- JWT access token (15 dk) + refresh token (7 gün, DB'de saklanır, rotation'lı).
+- Endpointler: `POST /api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`.
+- Varsayılan admin: **admin / Admin123!** (yalnızca geliştirme; `appsettings:DefaultAdmin`).
+- JWT secret `appsettings:Jwt:SecretKey` — **üretimde mutlaka değiştir** (user-secrets/env).
+- Roller: `UserRole` enum (Admin/Patron/Depocu). Rol claim'i = enum adı.
+- Policy'ler: `Policies.AdminOnly`, `PatronOrAdmin`, `WarehouseStaff` (bkz. `Api/Authorization/Policies.cs`).
+- Parola: PBKDF2-SHA256 (`PasswordHasher`), harici paket yok.
+
 ## Yol Haritası (Fazlar)
 
 - **Faz 0** — İskelet (✅ 0.1 tamam), ortak altyapı (0.2), auth (0.3)

@@ -1,19 +1,24 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Toptanci.Application.Common.Abstractions;
 using Toptanci.Domain.Common;
+using Toptanci.Domain.Entities;
 
 namespace Toptanci.Infrastructure.Persistence;
 
 /// <summary>
-/// Uygulamanın ana EF Core context'i. Entity'ler ve konfigürasyonları sonraki fazlarda eklenecek.
+/// Uygulamanın ana EF Core context'i. Yeni entity'lerin DbSet'leri buraya eklenir.
 /// Soft delete için global query filter ve assembly'deki IEntityTypeConfiguration'ları otomatik uygular.
 /// </summary>
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
     }
+
+    public DbSet<User> Users => Set<User>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
