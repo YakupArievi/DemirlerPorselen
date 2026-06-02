@@ -17,8 +17,19 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     {
     }
 
+    public const string BarcodeSequenceName = "BarcodeSequence";
+
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Brand> Brands => Set<Brand>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
+
+    public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+    public DbSet<StockItem> StockItems => Set<StockItem>();
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,6 +37,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
         // Bu assembly'deki tüm IEntityTypeConfiguration<T> sınıflarını uygula
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        // Barkod üretimi için monoton sıra
+        modelBuilder.HasSequence<long>(BarcodeSequenceName).StartsAt(1).IncrementsBy(1);
 
         // ISoftDelete uygulayan tüm entity'lere global query filter ekle (e => !e.IsDeleted)
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())

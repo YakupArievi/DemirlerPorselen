@@ -63,10 +63,20 @@ dotnet run --project src/Toptanci.Api
 - Policy'ler: `Policies.AdminOnly`, `PatronOrAdmin`, `WarehouseStaff` (bkz. `Api/Authorization/Policies.cs`).
 - Parola: PBKDF2-SHA256 (`PasswordHasher`), harici paket yok.
 
+## Notlar
+
+- **Mapping:** AutoMapper kullanılmıyor (v16 ticari lisans). DTO projeksiyonları EF `Select`
+  içinde satır içi veya statik `Expression<Func<,>>` ile yapılır; entity→DTO elle.
+- **Barkod:** `dbo.BarcodeSequence` SQL sequence; adet "A"+12hane, koli "K"+12hane.
+  `IBarcodeGenerator` ham ADO ile `NEXT VALUE FOR` çalıştırır (SqlQueryRaw alt-sorguya sarar, sequence'te yasak).
+- **Ledger:** `IStockLedger.ApplyAsync` hareket ekler + StockItem cache'i günceller, SaveChanges ÇAĞIRMAZ
+  (çağıran tek transaction'da toplar). İdempotency `IdempotencyKey` ile.
+- **Maliyet:** Ürün girişinde ağırlıklı ortalama; koli birim fiyatı adete bölünerek normalize edilir.
+
 ## Yol Haritası (Fazlar)
 
-- **Faz 0** — İskelet (✅ 0.1 tamam), ortak altyapı (0.2), auth (0.3)
-- **Faz 1** — Ürün & stok çekirdeği (varyant, barkod, depo, ledger, ürün girişi)
+- **Faz 0** — ✅ İskelet (0.1), ortak altyapı (0.2), auth (0.3)
+- **Faz 1** — ✅ Ürün & stok çekirdeği (varyant, barkod, depo, ledger, ürün girişi)
 - **Faz 2** — Satış & cari (müşteri, cari hesap, satış, ödeme, iptal/iade, fiyat geçmişi)
 - **Faz 3** — Kırık ürün, stok sayımı, depo transferi
 - **Faz 4** — Raporlama (dashboard, PDF)

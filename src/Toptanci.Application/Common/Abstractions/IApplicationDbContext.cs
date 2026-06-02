@@ -11,5 +11,14 @@ public interface IApplicationDbContext
     DbSet<User> Users { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
 
+    DbSet<Category> Categories { get; }
+    DbSet<Brand> Brands { get; }
+    DbSet<Product> Products { get; }
+    DbSet<ProductVariant> ProductVariants { get; }
+
+    DbSet<Warehouse> Warehouses { get; }
+    DbSet<StockItem> StockItems { get; }
+    DbSet<StockMovement> StockMovements { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

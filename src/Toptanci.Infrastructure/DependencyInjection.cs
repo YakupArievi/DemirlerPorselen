@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Toptanci.Application.Common.Abstractions;
@@ -24,6 +25,11 @@ public static class DependencyInjection
                 sql => sql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName));
 
             options.AddInterceptors(sp.GetRequiredService<AuditableEntityInterceptor>());
+
+            // Ledger ilişkileri (StockMovement→Variant, RefreshToken→User) zorunlu uçta soft-delete
+            // query filter'ı ile etkileşir; bu kayıtları soft-delete etmediğimiz için uyarı zararsız.
+            options.ConfigureWarnings(w =>
+                w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
         });
 
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
@@ -33,6 +39,7 @@ public static class DependencyInjection
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddScoped<IBarcodeGenerator, BarcodeGenerator>();
 
         return services;
     }
