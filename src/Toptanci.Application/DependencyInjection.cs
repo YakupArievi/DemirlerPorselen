@@ -6,6 +6,9 @@ using Toptanci.Application.Features.Catalog.Brands;
 using Toptanci.Application.Features.Catalog.Categories;
 using Toptanci.Application.Features.Catalog.Products;
 using Toptanci.Application.Features.Catalog.Variants;
+using Toptanci.Application.Features.Operations.Broken;
+using Toptanci.Application.Features.Operations.Counts;
+using Toptanci.Application.Features.Operations.Transfers;
 using Toptanci.Application.Features.Sales;
 using Toptanci.Application.Features.Sales.Accounts;
 using Toptanci.Application.Features.Sales.Customers;
@@ -48,6 +51,11 @@ public static class DependencyInjection
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<ISaleService, SaleService>();
         services.AddScoped<IPaymentService, PaymentService>();
+
+        // Operasyonlar (kırık, sayım, transfer)
+        services.AddScoped<IBrokenProductService, BrokenProductService>();
+        services.AddScoped<IStockCountService, StockCountService>();
+        services.AddScoped<IWarehouseTransferService, WarehouseTransferService>();
 
         return services;
     }

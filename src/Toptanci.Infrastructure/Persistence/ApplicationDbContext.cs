@@ -38,6 +38,12 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<SaleReturnLine> SaleReturnLines => Set<SaleReturnLine>();
     public DbSet<PriceHistory> PriceHistories => Set<PriceHistory>();
 
+    public DbSet<BrokenProductRecord> BrokenProductRecords => Set<BrokenProductRecord>();
+    public DbSet<StockCount> StockCounts => Set<StockCount>();
+    public DbSet<StockCountLine> StockCountLines => Set<StockCountLine>();
+    public DbSet<WarehouseTransfer> WarehouseTransfers => Set<WarehouseTransfer>();
+    public DbSet<WarehouseTransferLine> WarehouseTransferLines => Set<WarehouseTransferLine>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -49,9 +55,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         modelBuilder.HasSequence<long>(SequenceNames.Barcode).StartsAt(1).IncrementsBy(1);
         modelBuilder.HasSequence<long>(SequenceNames.SaleNumber).StartsAt(1000).IncrementsBy(1);
 
-        // ISoftDelete uygulayan tüm entity'lere global query filter ekle (e => !e.IsDeleted)
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
+            // ISoftDelete uygulayan tüm entity'lere global query filter ekle (e => !e.IsDeleted)
             if (typeof(ISoftDelete).IsAssignableFrom(entityType.ClrType))
             {
                 var parameter = Expression.Parameter(entityType.ClrType, "e");
@@ -59,6 +65,12 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
                 var filter = Expression.Lambda(Expression.Not(prop), parameter);
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
             }
+
+            // Guid PK'ler client tarafında üretilir (offline, mimari kural 1) -> ValueGeneratedNever.
+            // Aksi halde mevcut parent'a önceden Id atanmış child eklenince EF "var olan kayıt" sanıp UPDATE üretir.
+            var pk = entityType.FindPrimaryKey();
+            if (pk is { Properties.Count: 1 } && pk.Properties[0] is { Name: "Id", ClrType: var t } idProp && t == typeof(Guid))
+                idProp.ValueGenerated = Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.Never;
         }
     }
 }

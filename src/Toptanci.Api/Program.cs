@@ -22,6 +22,11 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Services(services)
     .Enrich.FromLogContext());
 
+// Yüklenen dosyalar için kök (depolama ile statik servis aynı klasörü kullanır)
+var webRoot = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(Path.Combine(webRoot, "uploads"));
+builder.Configuration["Storage:RootPath"] = webRoot;
+
 // Katman servisleri
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -83,6 +88,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSerilogRequestLogging();
+app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

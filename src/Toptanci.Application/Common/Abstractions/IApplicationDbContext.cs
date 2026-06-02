@@ -29,5 +29,11 @@ public interface IApplicationDbContext
     DbSet<SaleReturnLine> SaleReturnLines { get; }
     DbSet<PriceHistory> PriceHistories { get; }
 
+    DbSet<BrokenProductRecord> BrokenProductRecords { get; }
+    DbSet<StockCount> StockCounts { get; }
+    DbSet<StockCountLine> StockCountLines { get; }
+    DbSet<WarehouseTransfer> WarehouseTransfers { get; }
+    DbSet<WarehouseTransferLine> WarehouseTransferLines { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

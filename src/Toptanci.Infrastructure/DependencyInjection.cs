@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddSingleton<ITokenService, JwtTokenService>();
         services.AddScoped<ISequenceGenerator, SequenceGenerator>();
         services.AddScoped<IBarcodeGenerator, BarcodeGenerator>();
+        services.AddSingleton<IFileStorage, Storage.LocalFileStorage>();
 
         return services;
     }

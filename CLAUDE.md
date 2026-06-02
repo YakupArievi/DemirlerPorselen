@@ -72,11 +72,14 @@ dotnet run --project src/Toptanci.Api
 - **Ledger:** `IStockLedger.ApplyAsync` hareket ekler + StockItem cache'i günceller, SaveChanges ÇAĞIRMAZ
   (çağıran tek transaction'da toplar). İdempotency `IdempotencyKey` ile.
 - **Maliyet:** Ürün girişinde ağırlıklı ortalama; koli birim fiyatı adete bölünerek normalize edilir.
+- **Guid PK:** Tüm Guid PK'ler `ValueGeneratedNever` (client üretir, offline). Mevcut parent'a child
+  eklerken navigation collection yerine doğrudan `_db.Set.Add` tercih edilir (state karışmasın).
 
 ## Yol Haritası (Fazlar)
 
 - **Faz 0** — ✅ İskelet (0.1), ortak altyapı (0.2), auth (0.3)
 - **Faz 1** — ✅ Ürün & stok çekirdeği (varyant, barkod, depo, ledger, ürün girişi)
+- **Faz 3** — ✅ Kırık ürün, stok sayımı, depo transferi (dosya depolama soyutlaması)
 - **Faz 2** — ✅ Satış & cari (müşteri, cari ledger/ekstre, satış, ödeme, iptal/iade, fiyat geçmişi)
 - **Faz 2** — Satış & cari (müşteri, cari hesap, satış, ödeme, iptal/iade, fiyat geçmişi)
 - **Faz 3** — Kırık ürün, stok sayımı, depo transferi
