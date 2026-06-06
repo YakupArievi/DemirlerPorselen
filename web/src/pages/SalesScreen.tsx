@@ -1,0 +1,155 @@
+import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api, apiErrorMessage } from '../api/client';
+import type { Customer, Paged, ResolvedBarcode, Sale, UnitType, Warehouse } from '../api/types';
+import { tl } from '../lib/format';
+import { inputCls, btnPrimary, btnGhost } from '../components/Modal';
+
+interface CartItem {
+  key: string; variantId: string; name: string; unitType: UnitType;
+  quantity: number; unitPrice: number; lineDiscount: number;
+}
+
+export function SalesScreen() {
+  const customers = useQuery({ queryKey: ['customers-all'], queryFn: async () => (await api.get<Paged<Customer>>('/customers?pageSize=500')).data });
+  const warehouses = useQuery({ queryKey: ['warehouses'], queryFn: async () => (await api.get<Warehouse[]>('/warehouses')).data });
+
+  const [customerId, setCustomerId] = useState('');
+  const [warehouseId, setWarehouseId] = useState('');
+  const [barcode, setBarcode] = useState('');
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [docDiscount, setDocDiscount] = useState(0);
+  const [payType, setPayType] = useState<'' | 'Nakit' | 'Kart' | 'Cek'>('');
+  const [payAmount, setPayAmount] = useState(0);
+  const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const barcodeRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (warehouses.data && !warehouseId && warehouses.data.length > 0) {
+      const def = warehouses.data.find((w) => w.isDefault) ?? warehouses.data[0];
+      setWarehouseId(def.id);
+    }
+  }, [warehouses.data, warehouseId]);
+
+  const addBarcode = async (code: string) => {
+    if (!code.trim()) return;
+    try {
+      const res = await api.get<ResolvedBarcode>(`/variants/resolve?barcode=${encodeURIComponent(code.trim())}`);
+      const r = res.data;
+      setCart((c) => {
+        const existing = c.find((i) => i.variantId === r.variantId && i.unitType === r.unitType);
+        if (existing) return c.map((i) => i === existing ? { ...i, quantity: i.quantity + 1 } : i);
+        const unitPrice = r.unitType === 'Koli' ? r.salePrice * r.adetEquivalent : r.salePrice;
+        return [...c, {
+          key: crypto.randomUUID(), variantId: r.variantId,
+          name: `${r.productName} ${r.color ?? ''} ${r.size ?? ''} (${r.unitType})`.trim(),
+          unitType: r.unitType, quantity: 1, unitPrice, lineDiscount: 0,
+        }];
+      });
+      setBarcode('');
+      barcodeRef.current?.focus();
+    } catch (e) {
+      setMsg({ kind: 'err', text: apiErrorMessage(e) });
+    }
+  };
+
+  const update = (key: string, patch: Partial<CartItem>) =>
+    setCart((c) => c.map((i) => i.key === key ? { ...i, ...patch } : i));
+  const remove = (key: string) => setCart((c) => c.filter((i) => i.key !== key));
+
+  const subTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  const lineDiscTotal = cart.reduce((s, i) => s + i.lineDiscount, 0);
+  const grandTotal = subTotal - lineDiscTotal - docDiscount;
+
+  const submit = async () => {
+    setMsg(null);
+    if (!customerId) return setMsg({ kind: 'err', text: 'Müşteri seçin.' });
+    if (!warehouseId) return setMsg({ kind: 'err', text: 'Depo seçin.' });
+    if (cart.length === 0) return setMsg({ kind: 'err', text: 'Sepet boş.' });
+    setBusy(true);
+    try {
+      const body = {
+        customerId, warehouseId, idempotencyKey: crypto.randomUUID(),
+        documentDiscount: docDiscount,
+        initialPayment: payType && payAmount > 0 ? { type: payType, amount: payAmount } : null,
+        lines: cart.map((i) => ({ variantId: i.variantId, unitType: i.unitType, quantity: i.quantity, unitPrice: i.unitPrice, lineDiscount: i.lineDiscount })),
+      };
+      const res = await api.post<Sale>('/sales', body);
+      setMsg({ kind: 'ok', text: `Satış #${res.data.saleNumber} kaydedildi (${tl(res.data.grandTotal)}).` });
+      setCart([]); setDocDiscount(0); setPayType(''); setPayAmount(0);
+    } catch (e) {
+      setMsg({ kind: 'err', text: apiErrorMessage(e) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold text-slate-800">Satış</h1>
+      {msg && <div className={`rounded p-2 text-sm ${msg.kind === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>{msg.text}</div>}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <select className={inputCls} value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
+          <option value="">Müşteri seçin...</option>
+          {customers.data?.items.map((c) => <option key={c.id} value={c.id}>{c.name} ({tl(c.balance)})</option>)}
+        </select>
+        <select className={inputCls} value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
+          <option value="">Depo seçin...</option>
+          {warehouses.data?.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+        </select>
+        <input ref={barcodeRef} className={inputCls} placeholder="Barkod okut / yaz + Enter" value={barcode}
+          onChange={(e) => setBarcode(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') addBarcode(barcode); }} autoFocus />
+      </div>
+
+      <div className="overflow-hidden rounded-lg bg-white shadow">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-left text-slate-500">
+            <tr><th className="p-2">Ürün</th><th className="p-2">Birim</th><th className="p-2 w-24">Adet/Koli</th><th className="p-2 w-28">B.Fiyat</th><th className="p-2 w-28">İskonto</th><th className="p-2 text-right">Tutar</th><th></th></tr>
+          </thead>
+          <tbody>
+            {cart.map((i) => (
+              <tr key={i.key} className="border-t">
+                <td className="p-2">{i.name}</td>
+                <td className="p-2">{i.unitType}</td>
+                <td className="p-2"><input type="number" className={inputCls} value={i.quantity} min={1} onChange={(e) => update(i.key, { quantity: +e.target.value })} /></td>
+                <td className="p-2"><input type="number" className={inputCls} value={i.unitPrice} onChange={(e) => update(i.key, { unitPrice: +e.target.value })} /></td>
+                <td className="p-2"><input type="number" className={inputCls} value={i.lineDiscount} onChange={(e) => update(i.key, { lineDiscount: +e.target.value })} /></td>
+                <td className="p-2 text-right">{tl(i.unitPrice * i.quantity - i.lineDiscount)}</td>
+                <td className="p-2 text-right"><button className="text-red-500" onClick={() => remove(i.key)}>✕</button></td>
+              </tr>
+            ))}
+            {cart.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-slate-400">Sepet boş — barkod okutun</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:justify-end">
+        <div className="rounded-lg bg-white p-4 shadow lg:w-96">
+          <div className="flex justify-between py-1 text-sm"><span>Ara Toplam</span><span>{tl(subTotal)}</span></div>
+          <div className="flex justify-between py-1 text-sm"><span>Satır İskontoları</span><span>-{tl(lineDiscTotal)}</span></div>
+          <div className="flex items-center justify-between py-1 text-sm">
+            <span>Fiş İskontosu</span>
+            <input type="number" className={inputCls + ' w-28 text-right'} value={docDiscount} onChange={(e) => setDocDiscount(+e.target.value)} />
+          </div>
+          <div className="mt-2 flex justify-between border-t pt-2 text-lg font-bold"><span>Genel Toplam</span><span>{tl(grandTotal)}</span></div>
+
+          <div className="mt-3 flex gap-2">
+            <select className={inputCls} value={payType} onChange={(e) => setPayType(e.target.value as typeof payType)}>
+              <option value="">Peşin ödeme yok</option>
+              <option value="Nakit">Nakit</option><option value="Kart">Kart</option><option value="Cek">Çek</option>
+            </select>
+            <input type="number" className={inputCls + ' w-32'} placeholder="Tutar" value={payAmount} onChange={(e) => setPayAmount(+e.target.value)} disabled={!payType} />
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            <button className={btnGhost + ' flex-1'} onClick={() => { setCart([]); setDocDiscount(0); }}>Temizle</button>
+            <button className={btnPrimary + ' flex-1'} disabled={busy} onClick={submit}>Satışı Tamamla</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

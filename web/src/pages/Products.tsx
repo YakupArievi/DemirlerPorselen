@@ -1,0 +1,169 @@
+import { Fragment, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, apiErrorMessage } from '../api/client';
+import type { Brand, Category, Paged, Product, Variant } from '../api/types';
+import { Modal, Field, inputCls, btnPrimary, btnGhost } from '../components/Modal';
+import { tl } from '../lib/format';
+
+export function Products() {
+  const qc = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [showProduct, setShowProduct] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const categories = useQuery({ queryKey: ['categories'], queryFn: async () => (await api.get<Paged<Category>>('/categories?pageSize=200')).data });
+  const brands = useQuery({ queryKey: ['brands'], queryFn: async () => (await api.get<Paged<Brand>>('/brands?pageSize=200')).data });
+  const products = useQuery({
+    queryKey: ['products', search],
+    queryFn: async () => (await api.get<Paged<Product>>(`/products?pageSize=100&search=${encodeURIComponent(search)}`)).data,
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-800">Ürünler</h1>
+        <button className={btnPrimary} onClick={() => setShowProduct(true)}>Yeni Ürün</button>
+      </div>
+
+      <input className={inputCls + ' max-w-sm'} placeholder="Ürün ara..." value={search} onChange={(e) => setSearch(e.target.value)} />
+
+      <div className="overflow-hidden rounded-lg bg-white shadow">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-left text-slate-500">
+            <tr><th className="p-3">Ürün</th><th className="p-3">Kategori</th><th className="p-3">Marka</th><th className="p-3">Varyant</th><th></th></tr>
+          </thead>
+          <tbody>
+            {products.data?.items.map((p) => (
+              <Fragment key={p.id}>
+                <tr className="border-t hover:bg-slate-50">
+                  <td className="p-3 font-medium">{p.name}</td>
+                  <td className="p-3">{p.categoryName}</td>
+                  <td className="p-3">{p.brandName ?? '-'}</td>
+                  <td className="p-3">{p.variantCount}</td>
+                  <td className="p-3 text-right">
+                    <button className={btnGhost} onClick={() => setExpanded(expanded === p.id ? null : p.id)}>
+                      {expanded === p.id ? 'Gizle' : 'Varyantlar'}
+                    </button>
+                  </td>
+                </tr>
+                {expanded === p.id && (
+                  <tr>
+                    <td colSpan={5} className="bg-slate-50 p-3">
+                      <VariantPanel productId={p.id} onChanged={() => qc.invalidateQueries({ queryKey: ['products'] })} />
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
+            {products.data?.items.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-slate-400">Ürün yok</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      {showProduct && (
+        <ProductModal
+          categories={categories.data?.items ?? []}
+          brands={brands.data?.items ?? []}
+          onClose={() => setShowProduct(false)}
+          onSaved={() => { setShowProduct(false); qc.invalidateQueries({ queryKey: ['products'] }); }}
+          onCategoryAdded={() => categories.refetch()}
+        />
+      )}
+    </div>
+  );
+}
+
+function ProductModal({ categories, brands, onClose, onSaved, onCategoryAdded }: {
+  categories: Category[]; brands: Brand[]; onClose: () => void; onSaved: () => void; onCategoryAdded: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '');
+  const [brandId, setBrandId] = useState('');
+  const [newCat, setNewCat] = useState('');
+  const [error, setError] = useState('');
+
+  const addCategory = useMutation({
+    mutationFn: async () => (await api.post('/categories', { name: newCat })).data as Category,
+    onSuccess: (c) => { setNewCat(''); setCategoryId(c.id); onCategoryAdded(); },
+  });
+
+  const save = useMutation({
+    mutationFn: async () => api.post('/products', { name, categoryId, brandId: brandId || null }),
+    onSuccess: onSaved,
+    onError: (e) => setError(apiErrorMessage(e)),
+  });
+
+  return (
+    <Modal title="Yeni Ürün" onClose={onClose}>
+      {error && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{error}</div>}
+      <Field label="Ürün adı"><input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} /></Field>
+      <Field label="Kategori">
+        <div className="flex gap-2">
+          <select className={inputCls} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <option value="">Seçin</option>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <div className="mt-2 flex gap-2">
+          <input className={inputCls} placeholder="Yeni kategori" value={newCat} onChange={(e) => setNewCat(e.target.value)} />
+          <button className={btnGhost} disabled={!newCat} onClick={() => addCategory.mutate()}>Ekle</button>
+        </div>
+      </Field>
+      <Field label="Marka (opsiyonel)">
+        <select className={inputCls} value={brandId} onChange={(e) => setBrandId(e.target.value)}>
+          <option value="">Yok</option>
+          {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+      </Field>
+      <div className="flex justify-end gap-2">
+        <button className={btnGhost} onClick={onClose}>İptal</button>
+        <button className={btnPrimary} disabled={!name || !categoryId || save.isPending} onClick={() => save.mutate()}>Kaydet</button>
+      </div>
+    </Modal>
+  );
+}
+
+function VariantPanel({ productId, onChanged }: { productId: string; onChanged: () => void }) {
+  const variants = useQuery({
+    queryKey: ['variants', productId],
+    queryFn: async () => (await api.get<Variant[]>(`/products/${productId}/variants`)).data,
+  });
+  const [form, setForm] = useState({ color: '', size: '', koliIciAdet: 1, purchasePrice: 0, salePrice: 0, minStock: 0 });
+  const add = useMutation({
+    mutationFn: async () => api.post('/variants', { productId, ...form }),
+    onSuccess: () => { variants.refetch(); onChanged(); setForm({ color: '', size: '', koliIciAdet: 1, purchasePrice: 0, salePrice: 0, minStock: 0 }); },
+  });
+
+  return (
+    <div>
+      <table className="mb-3 w-full text-xs">
+        <thead className="text-left text-slate-500">
+          <tr><th className="p-1">Renk/Beden</th><th className="p-1">Adet Barkod</th><th className="p-1">Koli Barkod</th><th className="p-1">Koli İçi</th><th className="p-1">Alış</th><th className="p-1">Satış</th><th className="p-1">Min</th></tr>
+        </thead>
+        <tbody>
+          {variants.data?.map((v) => (
+            <tr key={v.id} className="border-t">
+              <td className="p-1">{v.color} {v.size}</td>
+              <td className="p-1 font-mono">{v.adetBarcode}</td>
+              <td className="p-1 font-mono">{v.koliBarcode}</td>
+              <td className="p-1">{v.koliIciAdet}</td>
+              <td className="p-1">{tl(v.purchasePrice)}</td>
+              <td className="p-1">{tl(v.salePrice)}</td>
+              <td className="p-1">{v.minStock}</td>
+            </tr>
+          ))}
+          {variants.data?.length === 0 && <tr><td colSpan={7} className="p-2 text-slate-400">Varyant yok</td></tr>}
+        </tbody>
+      </table>
+      <div className="flex flex-wrap items-end gap-2">
+        <input className={inputCls + ' w-24'} placeholder="Renk" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
+        <input className={inputCls + ' w-20'} placeholder="Beden" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
+        <input className={inputCls + ' w-24'} type="number" placeholder="Koli içi" value={form.koliIciAdet} onChange={(e) => setForm({ ...form, koliIciAdet: +e.target.value })} />
+        <input className={inputCls + ' w-24'} type="number" placeholder="Alış" value={form.purchasePrice} onChange={(e) => setForm({ ...form, purchasePrice: +e.target.value })} />
+        <input className={inputCls + ' w-24'} type="number" placeholder="Satış" value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: +e.target.value })} />
+        <input className={inputCls + ' w-20'} type="number" placeholder="Min" value={form.minStock} onChange={(e) => setForm({ ...form, minStock: +e.target.value })} />
+        <button className={btnPrimary} disabled={add.isPending} onClick={() => add.mutate()}>Varyant Ekle</button>
+      </div>
+    </div>
+  );
+}
