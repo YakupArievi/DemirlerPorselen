@@ -9,3 +9,10 @@ body {
   background-color: #f1f5f9;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
+
+/* Yazdırırken yalnızca QR etiketlerini göster */
+@media print {
+  body * { visibility: hidden; }
+  #qr-print, #qr-print * { visibility: visible; }
+  #qr-print { position: absolute; left: 0; top: 0; }
+}

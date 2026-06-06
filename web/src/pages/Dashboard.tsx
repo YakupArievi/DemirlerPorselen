@@ -1,7 +1,9 @@
+import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import type { Dashboard as DashboardData } from '../api/types';
 import { tl, dateStr } from '../lib/format';
+import { useAuth } from '../store/auth';
 
 function Card({ title, value, accent }: { title: string; value: string; accent?: string }) {
   return (
@@ -13,6 +15,12 @@ function Card({ title, value, accent }: { title: string; value: string; accent?:
 }
 
 export function Dashboard() {
+  const role = useAuth((s) => s.user?.role);
+  if (role === 'Depocu') return <Navigate to="/sales" replace />;
+  return <DashboardInner />;
+}
+
+function DashboardInner() {
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: async () => (await api.get<DashboardData>('/dashboard/summary')).data,

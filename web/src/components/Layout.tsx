@@ -4,16 +4,20 @@ import { api } from '../api/client';
 import { useSyncEngine } from '../offline/useSyncEngine';
 import { useOffline } from '../offline/store';
 
-const nav = [
-  { to: '/', label: 'Panel', end: true },
-  { to: '/sales', label: 'Satış' },
-  { to: '/products', label: 'Ürünler' },
-  { to: '/stock', label: 'Stok' },
-  { to: '/customers', label: 'Cari / Müşteri' },
+type Role = 'Admin' | 'Patron' | 'Depocu';
+const nav: { to: string; label: string; end?: boolean; roles: Role[] }[] = [
+  { to: '/', label: 'Panel', end: true, roles: ['Admin', 'Patron'] },
+  { to: '/sales', label: 'Satış', roles: ['Admin', 'Patron', 'Depocu'] },
+  { to: '/products', label: 'Ürünler', roles: ['Admin', 'Patron', 'Depocu'] },
+  { to: '/stock', label: 'Stok', roles: ['Admin', 'Patron', 'Depocu'] },
+  { to: '/customers', label: 'Cari / Müşteri', roles: ['Admin', 'Patron'] },
+  { to: '/users', label: 'Kullanıcılar', roles: ['Admin'] },
 ];
 
 export function Layout() {
   const { user, refreshToken, clear } = useAuth();
+  const role = (user?.role ?? 'Depocu') as Role;
+  const visibleNav = nav.filter((n) => n.roles.includes(role));
   const navigate = useNavigate();
   useSyncEngine();
   const { online, pending } = useOffline();
@@ -34,7 +38,7 @@ export function Layout() {
           <span className="text-base font-bold leading-tight">Demirler<br /><span className="text-xs font-medium text-slate-400">Porselen</span></span>
         </div>
         <nav className="flex-1 p-2 space-y-1">
-          {nav.map((n) => (
+          {visibleNav.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}

@@ -3,8 +3,9 @@ import { FlatList, Modal, Pressable, SafeAreaView, ScrollView, Text, View } from
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, apiError, dateStr, logout, tl, type Session } from '../api';
 import { Btn, BottomTabs, Card, Empty, Field, Loading, Row, StatCard, colors, refresh, s } from '../ui';
+import { QrScanner } from './QrScanner';
 
-const TABS = [
+const ALL_TABS = [
   { key: 'dash', label: 'Panel', icon: 'grid' },
   { key: 'sale', label: 'Satış', icon: 'cart' },
   { key: 'cari', label: 'Cari', icon: 'people' },
@@ -12,7 +13,10 @@ const TABS = [
 ];
 
 export function StaffHome({ session, onLogout }: { session: Session; onLogout: () => void }) {
-  const [tab, setTab] = useState('dash');
+  // Depocu: cari/panel (parasal) gizli -> sadece Satış + Stok
+  const isDepocu = session.user?.role === 'Depocu';
+  const tabs = isDepocu ? ALL_TABS.filter((t) => t.key === 'sale' || t.key === 'stok') : ALL_TABS;
+  const [tab, setTab] = useState(tabs[0].key);
   const doLogout = async () => { await logout(); onLogout(); };
   return (
     <SafeAreaView style={s.fill}>
@@ -29,7 +33,7 @@ export function StaffHome({ session, onLogout }: { session: Session; onLogout: (
         {tab === 'cari' && <CariTab />}
         {tab === 'stok' && <StokTab />}
       </View>
-      <BottomTabs tabs={TABS} active={tab} onChange={setTab} />
+      <BottomTabs tabs={tabs} active={tab} onChange={setTab} />
     </SafeAreaView>
   );
 }
@@ -97,27 +101,30 @@ interface CartItem { key: string; variantId: string; name: string; unitType: str
 
 function SaleTab() {
   const qc = useQueryClient();
-  const customers = useQuery({ queryKey: ['s-custs'], queryFn: async () => (await api.get('/customers?pageSize=500')).data.items });
+  // Lookup: id+ad (Depocu dahil herkes erişebilir; parasal bilgi yok)
+  const customers = useQuery({ queryKey: ['s-lookup'], queryFn: async () => (await api.get('/customers/lookup')).data });
   const warehouses = useQuery({ queryKey: ['s-whs'], queryFn: async () => (await api.get('/warehouses')).data });
   const [customer, setCustomer] = useState<any>(null);
   const [wh, setWh] = useState<any>(null);
   const [pickCust, setPickCust] = useState(false);
   const [barcode, setBarcode] = useState('');
+  const [scan, setScan] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { if (warehouses.data && !wh) setWh(warehouses.data.find((w: any) => w.isDefault) ?? warehouses.data[0]); }, [warehouses.data, wh]);
 
-  const add = async () => {
-    if (!barcode.trim()) return;
+  const addByCode = async (code: string) => {
+    if (!code.trim()) return;
     try {
-      const r = (await api.get(`/variants/resolve?barcode=${encodeURIComponent(barcode.trim())}`)).data;
+      const r = (await api.get(`/variants/resolve?barcode=${encodeURIComponent(code.trim())}`)).data;
       const price = r.unitType === 'Koli' ? r.salePrice * r.adetEquivalent : r.salePrice;
       setCart((c) => [...c, { key: Math.random().toString(36), variantId: r.variantId, name: `${r.productName} ${r.color ?? ''} (${r.unitType})`.trim(), unitType: r.unitType, quantity: 1, unitPrice: price }]);
       setBarcode('');
     } catch (e) { setMsg({ ok: false, text: apiError(e) }); }
   };
+  const add = () => addByCode(barcode);
   const total = cart.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
 
   const submit = async () => {
@@ -131,7 +138,7 @@ function SaleTab() {
         documentDiscount: 0, lines: cart.map((i) => ({ variantId: i.variantId, unitType: i.unitType, quantity: i.quantity, unitPrice: i.unitPrice, lineDiscount: 0 })),
       });
       setMsg({ ok: true, text: `Satış #${res.data.saleNumber} kaydedildi (${tl(res.data.grandTotal)})` });
-      setCart([]); qc.invalidateQueries({ queryKey: ['s-dash'] }); qc.invalidateQueries({ queryKey: ['s-custs'] });
+      setCart([]); qc.invalidateQueries({ queryKey: ['s-dash'] });
     } catch (e) { setMsg({ ok: false, text: apiError(e) }); }
     finally { setBusy(false); }
   };
@@ -141,7 +148,9 @@ function SaleTab() {
       {msg ? <Text style={{ color: msg.ok ? colors.ok : '#f87171', marginBottom: 10 }}>{msg.text}</Text> : null}
       <Pressable onPress={() => setPickCust(true)}><Field label="Müşteri" editable={false} pointerEvents="none" value={customer?.name ?? ''} placeholder="Müşteri seç..." /></Pressable>
       <Text style={{ color: colors.sub, fontSize: 12, marginBottom: 8 }}>Depo: {wh?.name ?? '...'}</Text>
-      <Field label="Barkod" value={barcode} onChangeText={setBarcode} onSubmitEditing={add} returnKeyType="done" placeholder="Barkod oku/yaz + enter" />
+      <Btn title="📷 QR Okut" onPress={() => setScan(true)} />
+      <View style={{ height: 8 }} />
+      <Field label="veya kod yaz" value={barcode} onChangeText={setBarcode} onSubmitEditing={add} returnKeyType="done" placeholder="Ürün kodu + enter" />
       {cart.map((i) => (
         <View key={i.key} style={s.row}>
           <View style={{ flex: 1 }}>
@@ -158,7 +167,8 @@ function SaleTab() {
         <Row left="Toplam" right={tl(total)} />
         <Btn title="Satışı Tamamla" onPress={submit} busy={busy} />
       </Card>
-      <Selector visible={pickCust} title="Müşteri Seç" items={customers.data ?? []} label={(c: any) => `${c.name} (${tl(c.balance)})`} onPick={setCustomer} onClose={() => setPickCust(false)} />
+      <Selector visible={pickCust} title="Müşteri Seç" items={customers.data ?? []} label={(c: any) => c.name} onPick={setCustomer} onClose={() => setPickCust(false)} />
+      <QrScanner visible={scan} onClose={() => setScan(false)} onScan={(code) => { setScan(false); addByCode(code); }} />
     </ScrollView>
   );
 }
@@ -243,19 +253,21 @@ function StokTab() {
   const warehouses = useQuery({ queryKey: ['s-whs'], queryFn: async () => (await api.get('/warehouses')).data });
   const [wh, setWh] = useState<any>(null);
   const [barcode, setBarcode] = useState('');
+  const [scan, setScan] = useState(false);
   const [lines, setLines] = useState<EntryLine[]>([]);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => { if (warehouses.data && !wh) setWh(warehouses.data.find((w: any) => w.isDefault) ?? warehouses.data[0]); }, [warehouses.data, wh]);
   const stock = useQuery({ queryKey: ['s-stock', wh?.id], enabled: !!wh, queryFn: async () => (await api.get(`/stock/warehouse/${wh.id}?pageSize=200`)).data.items });
 
-  const add = async () => {
-    if (!barcode.trim()) return;
+  const addByCode = async (code: string) => {
+    if (!code.trim()) return;
     try {
-      const r = (await api.get(`/variants/resolve?barcode=${encodeURIComponent(barcode.trim())}`)).data;
-      setLines((l) => [...l, { key: Math.random().toString(36), variantId: r.variantId, name: `${r.productName} (${r.unitType})`, unitType: r.unitType, quantity: 1, unitPurchasePrice: 0 }]);
+      const r = (await api.get(`/variants/resolve?barcode=${encodeURIComponent(code.trim())}`)).data;
+      setLines((l) => [...l, { key: Math.random().toString(36), variantId: r.variantId, name: `${r.productName} (${r.unitType})`, unitType: r.unitType, quantity: 1, unitPurchasePrice: r.salePrice ? 0 : 0 }]);
       setBarcode('');
     } catch (e) { setMsg({ ok: false, text: apiError(e) }); }
   };
+  const add = () => addByCode(barcode);
   const submit = async () => {
     setMsg(null);
     if (!wh || !lines.length) return setMsg({ ok: false, text: 'Satır ekleyin.' });
@@ -271,7 +283,9 @@ function StokTab() {
       {msg ? <Text style={{ color: msg.ok ? colors.ok : '#f87171', marginBottom: 8 }}>{msg.text}</Text> : null}
       <Card>
         <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 8 }}>Ürün Girişi</Text>
-        <Field value={barcode} onChangeText={setBarcode} onSubmitEditing={add} returnKeyType="done" placeholder="Barkod + enter" />
+        <Btn title="📷 QR Okut" onPress={() => setScan(true)} />
+        <View style={{ height: 8 }} />
+        <Field value={barcode} onChangeText={setBarcode} onSubmitEditing={add} returnKeyType="done" placeholder="veya kod yaz + enter" />
         {lines.map((l) => (
           <View key={l.key} style={s.row}>
             <View style={{ flex: 1 }}><Text style={s.rowMain}>{l.name}</Text></View>
@@ -286,6 +300,7 @@ function StokTab() {
         (stock.data ?? []).map((x: any) => (
           <Row key={x.variantId} left={`${x.productName} ${x.color ?? ''}`.trim()} sub={x.adetBarcode} right={`${x.quantity}`} />
         ))}
+      <QrScanner visible={scan} onClose={() => setScan(false)} onScan={(code) => { setScan(false); addByCode(code); }} />
     </ScrollView>
   );
 }

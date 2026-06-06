@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, apiErrorMessage } from '../api/client';
 import type { Brand, Category, Paged, Product, Variant } from '../api/types';
 import { Modal, Field, inputCls, btnPrimary, btnGhost } from '../components/Modal';
+import { QrLabelModal } from '../components/QrLabel';
 import { tl } from '../lib/format';
 
 export function Products() {
@@ -129,6 +130,7 @@ function VariantPanel({ productId, onChanged }: { productId: string; onChanged: 
     queryFn: async () => (await api.get<Variant[]>(`/products/${productId}/variants`)).data,
   });
   const [form, setForm] = useState({ color: '', size: '', koliIciAdet: 1, purchasePrice: 0, salePrice: 0, minStock: 0 });
+  const [qr, setQr] = useState<Variant | null>(null);
   const add = useMutation({
     mutationFn: async () => api.post('/variants', { productId, ...form }),
     onSuccess: () => { variants.refetch(); onChanged(); setForm({ color: '', size: '', koliIciAdet: 1, purchasePrice: 0, salePrice: 0, minStock: 0 }); },
@@ -138,7 +140,7 @@ function VariantPanel({ productId, onChanged }: { productId: string; onChanged: 
     <div>
       <table className="mb-3 w-full text-xs">
         <thead className="text-left text-slate-500">
-          <tr><th className="p-1">Renk/Beden</th><th className="p-1">Adet Barkod</th><th className="p-1">Koli Barkod</th><th className="p-1">Koli İçi</th><th className="p-1">Alış</th><th className="p-1">Satış</th><th className="p-1">Min</th></tr>
+          <tr><th className="p-1">Renk/Beden</th><th className="p-1">Adet QR</th><th className="p-1">Koli QR</th><th className="p-1">Koli İçi</th><th className="p-1">Alış</th><th className="p-1">Satış</th><th className="p-1">Min</th><th></th></tr>
         </thead>
         <tbody>
           {variants.data?.map((v) => (
@@ -150,11 +152,13 @@ function VariantPanel({ productId, onChanged }: { productId: string; onChanged: 
               <td className="p-1">{tl(v.purchasePrice)}</td>
               <td className="p-1">{tl(v.salePrice)}</td>
               <td className="p-1">{v.minStock}</td>
+              <td className="p-1 text-right"><button className={btnGhost} onClick={() => setQr(v)}>QR</button></td>
             </tr>
           ))}
-          {variants.data?.length === 0 && <tr><td colSpan={7} className="p-2 text-slate-400">Varyant yok</td></tr>}
+          {variants.data?.length === 0 && <tr><td colSpan={8} className="p-2 text-slate-400">Varyant yok</td></tr>}
         </tbody>
       </table>
+      {qr && <QrLabelModal variant={qr} onClose={() => setQr(null)} />}
       <div className="flex flex-wrap items-end gap-2">
         <input className={inputCls + ' w-24'} placeholder="Renk" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
         <input className={inputCls + ' w-20'} placeholder="Beden" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />

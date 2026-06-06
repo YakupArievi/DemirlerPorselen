@@ -26,7 +26,11 @@
     "plugins": [
       "expo-asset",
       "expo-font",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-camera",
+        { "cameraPermission": "QR kod okutmak için kamera erişimi gerekiyor." }
+      ]
     ]
   }
 }

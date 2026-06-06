@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { api, apiErrorMessage } from '../api/client';
-import type { Customer, Paged, ResolvedBarcode, Sale, UnitType, Variant, Warehouse } from '../api/types';
+import type { ResolvedBarcode, Sale, UnitType, Variant, Warehouse } from '../api/types';
 import { tl } from '../lib/format';
 import { inputCls, btnPrimary, btnGhost } from '../components/Modal';
 import { VariantPicker } from '../components/VariantPicker';
@@ -15,7 +15,8 @@ interface CartItem {
 }
 
 export function SalesScreen() {
-  const customers = useQuery({ queryKey: ['customers-all'], queryFn: async () => (await api.get<Paged<Customer>>('/customers?pageSize=500')).data });
+  // Lookup: id+ad (Depocu dahil herkes erişebilir; parasal bilgi yok)
+  const customers = useQuery({ queryKey: ['customers-lookup'], queryFn: async () => (await api.get<{ id: string; name: string }[]>('/customers/lookup')).data });
   const warehouses = useQuery({ queryKey: ['warehouses'], queryFn: async () => (await api.get<Warehouse[]>('/warehouses')).data });
 
   const [customerId, setCustomerId] = useState('');
@@ -134,7 +135,7 @@ export function SalesScreen() {
           <span className="mb-1 block text-sm text-slate-600">Müşteri</span>
           <select className={inputCls} value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
             <option value="">Müşteri seçin...</option>
-            {customers.data?.items.map((c) => <option key={c.id} value={c.id}>{c.name} ({tl(c.balance)})</option>)}
+            {customers.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </label>
         <label className="block">
