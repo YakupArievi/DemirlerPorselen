@@ -63,6 +63,9 @@ public static class DependencyInjection
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IReportService, ReportService>();
 
+        // Tahmin (Faz 8)
+        services.AddScoped<Features.Forecasting.IForecastService, Features.Forecasting.ForecastService>();
+
         return services;
     }
 }

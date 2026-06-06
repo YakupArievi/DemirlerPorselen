@@ -82,7 +82,18 @@ dotnet run --project src/Toptanci.Api
 - **Faz 2** — ✅ Satış & cari (müşteri, cari ledger/ekstre, satış, ödeme, iptal/iade, fiyat geçmişi)
 - **Faz 3** — ✅ Kırık ürün, stok sayımı, depo transferi (dosya depolama soyutlaması)
 - **Faz 4** — ✅ Raporlama (dashboard endpoint'leri, QuestPDF ile ekstre/müşteri/stok/karlılık PDF)
-- **Faz 5** — Frontend (React PWA)
-- **Faz 6** — Offline & senkronizasyon (en kritik)
-- **Faz 7** — Mobil (React Native)
-- **Faz 8** — Yapay zeka (stok tahmini)
+- **Faz 5** — ✅ Frontend (React PWA: panel, ürün, satış, cari, stok)
+- **Faz 6** — ✅ Offline & senkronizasyon (Dexie cache + kuyruk + senkron motoru + PWA)
+- **Faz 7** — ✅ Mobil iskelet (Expo/React Native, `mobile/` — gelecek faz)
+- **Faz 8** — ✅ Yapay zeka v1 (hareketli ortalama sipariş önerisi/erken uyarı, `docs/faz8-yapay-zeka.md`)
+
+## Çalıştırma (tam yığın)
+
+```powershell
+# 1) Backend (LocalDB otomatik migrate + admin seed)
+dotnet run --project src/Toptanci.Api    # http://localhost:5080
+
+# 2) Frontend (ayrı terminal)
+cd web; npm install; npm run dev          # http://localhost:5173 (/api -> 5080 proxy)
+```
+Giriş: **admin / Admin123!**
