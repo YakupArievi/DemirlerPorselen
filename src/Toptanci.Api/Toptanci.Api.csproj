@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>1aadcdef-801f-4039-bada-8a14337575f4</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +20,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Toptanci.Application\Toptanci.Application.csproj" />
     <ProjectReference Include="..\Toptanci.Infrastructure\Toptanci.Infrastructure.csproj" />
+    <ProjectReference Include="..\Toptanci.Migrations.SqlServer\Toptanci.Migrations.SqlServer.csproj" />
+    <ProjectReference Include="..\Toptanci.Migrations.Postgres\Toptanci.Migrations.Postgres.csproj" />
   </ItemGroup>
 
 </Project>

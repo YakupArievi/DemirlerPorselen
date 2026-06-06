@@ -4,5 +4,7 @@
     <Project Path="src/Toptanci.Application/Toptanci.Application.csproj" />
     <Project Path="src/Toptanci.Domain/Toptanci.Domain.csproj" />
     <Project Path="src/Toptanci.Infrastructure/Toptanci.Infrastructure.csproj" />
+    <Project Path="src/Toptanci.Migrations.Postgres/Toptanci.Migrations.Postgres.csproj" />
+    <Project Path="src/Toptanci.Migrations.SqlServer/Toptanci.Migrations.SqlServer.csproj" />
   </Folder>
 </Solution>

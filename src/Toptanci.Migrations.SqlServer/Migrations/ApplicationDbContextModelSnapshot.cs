@@ -8,7 +8,7 @@ using Toptanci.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace Toptanci.Infrastructure.Persistence.Migrations
+namespace Toptanci.Migrations.SqlServer.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot

@@ -9,10 +9,10 @@ using Toptanci.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace Toptanci.Infrastructure.Persistence.Migrations
+namespace Toptanci.Migrations.SqlServer.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260606122046_Initial")]
+    [Migration("20260606125327_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
