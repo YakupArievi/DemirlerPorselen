@@ -44,22 +44,38 @@ public sealed class ApplicationDbContextInitializer
 
     public async Task SeedAsync()
     {
-        if (await _context.Users.AnyAsync())
-            return;
+        var changed = false;
 
-        var userName = _configuration["DefaultAdmin:UserName"] ?? "admin";
-        var password = _configuration["DefaultAdmin:Password"] ?? "Admin123!";
-
-        _context.Users.Add(new User
+        if (!await _context.Users.AnyAsync())
         {
-            UserName = userName,
-            FullName = "Sistem Yöneticisi",
-            Role = UserRole.Admin,
-            IsActive = true,
-            PasswordHash = _passwordHasher.Hash(password)
-        });
+            var userName = _configuration["DefaultAdmin:UserName"] ?? "admin";
+            var password = _configuration["DefaultAdmin:Password"] ?? "Admin123!";
+            _context.Users.Add(new User
+            {
+                UserName = userName,
+                FullName = "Sistem Yöneticisi",
+                Role = UserRole.Admin,
+                IsActive = true,
+                PasswordHash = _passwordHasher.Hash(password)
+            });
+            changed = true;
+            _logger.LogInformation("Varsayılan admin kullanıcısı oluşturuldu: {UserName}", userName);
+        }
 
-        await _context.SaveChangesAsync();
-        _logger.LogInformation("Varsayılan admin kullanıcısı oluşturuldu: {UserName}", userName);
+        if (!await _context.Warehouses.AnyAsync())
+        {
+            _context.Warehouses.Add(new Warehouse
+            {
+                Name = "Ana Depo",
+                Code = "ANA",
+                IsDefault = true,
+                IsActive = true
+            });
+            changed = true;
+            _logger.LogInformation("Varsayılan depo oluşturuldu: Ana Depo");
+        }
+
+        if (changed)
+            await _context.SaveChangesAsync();
     }
 }

@@ -14,7 +14,7 @@ using Toptanci.Infrastructure;
 using Toptanci.Infrastructure.Persistence;
 using Toptanci.Infrastructure.Security;
 
-var builder = WebApplication.CreateBuilder(args);
+    var builder = WebApplication.CreateBuilder(args);
 
 // Serilog
 builder.Host.UseSerilog((context, services, configuration) => configuration
