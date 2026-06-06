@@ -10,13 +10,13 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#14233b"
+      "backgroundColor": "#1f1e1a"
     },
     "android": {
       "package": "com.demirler.porselen",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#14233b"
+        "backgroundColor": "#1f1e1a"
       }
     },
     "ios": {

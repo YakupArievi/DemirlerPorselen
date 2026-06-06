@@ -30,8 +30,7 @@ export function Login() {
     <div className="flex h-full items-center justify-center">
       <form onSubmit={submit} className="w-80 rounded-lg bg-white p-6 shadow">
         <div className="mb-4 flex flex-col items-center">
-          <img src="/favicon.svg" alt="Demirler Porselen" className="mb-3 h-16 w-16 rounded-xl" />
-          <h1 className="text-xl font-bold text-slate-800">Demirler Porselen</h1>
+          <img src="/logo.png" alt="Demirler Porselen" className="mb-2 w-44 rounded-lg" />
           <p className="text-sm text-slate-500">Stok & Cari Yönetim</p>
         </div>
         {error && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{error}</div>}

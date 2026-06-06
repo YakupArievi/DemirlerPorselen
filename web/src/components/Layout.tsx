@@ -33,9 +33,8 @@ export function Layout() {
   return (
     <div className="flex h-full">
       <aside className="w-56 shrink-0 bg-slate-900 text-slate-100 flex flex-col">
-        <div className="flex items-center gap-2 px-4 py-4 border-b border-slate-700">
-          <img src="/favicon.svg" alt="" className="h-8 w-8 rounded-lg" />
-          <span className="text-base font-bold leading-tight">Demirler<br /><span className="text-xs font-medium text-slate-400">Porselen</span></span>
+        <div className="border-b border-slate-700 p-3">
+          <img src="/logo.png" alt="Demirler Porselen" className="mx-auto max-h-24 w-auto object-contain" />
         </div>
         <nav className="flex-1 p-2 space-y-1">
           {visibleNav.map((n) => (

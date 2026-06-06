@@ -22,8 +22,7 @@ export function Login({ onLogin }: { onLogin: (sess: Session) => void }) {
   return (
     <SafeAreaView style={s.fill}>
       <View style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
-        <Image source={require('../../assets/icon.png')} style={{ width: 88, height: 88, borderRadius: 20, alignSelf: 'center', marginBottom: 14 }} />
-        <Text style={{ fontSize: 30, fontWeight: 'bold', color: colors.text, textAlign: 'center' }}>Demirler Porselen</Text>
+        <Image source={require('../../assets/icon.png')} style={{ width: 200, height: 200, borderRadius: 24, alignSelf: 'center', marginBottom: 8 }} resizeMode="contain" />
         <Text style={{ color: colors.sub, textAlign: 'center', marginBottom: 24 }}>Stok & Cari</Text>
 
         <View style={{ flexDirection: 'row', backgroundColor: colors.card, borderRadius: 10, padding: 4, marginBottom: 18 }}>
