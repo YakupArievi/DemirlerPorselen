@@ -1,6 +1,8 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/auth';
 import { api } from '../api/client';
+import { useSyncEngine } from '../offline/useSyncEngine';
+import { useOffline } from '../offline/store';
 
 const nav = [
   { to: '/', label: 'Panel', end: true },
@@ -13,6 +15,8 @@ const nav = [
 export function Layout() {
   const { user, refreshToken, clear } = useAuth();
   const navigate = useNavigate();
+  useSyncEngine();
+  const { online, pending } = useOffline();
 
   const logout = async () => {
     try {
@@ -41,6 +45,11 @@ export function Layout() {
           ))}
         </nav>
         <div className="p-3 border-t border-slate-700 text-xs">
+          <div className="mb-2 flex items-center gap-2">
+            <span className={`inline-block h-2 w-2 rounded-full ${online ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+            <span>{online ? 'Çevrimiçi' : 'Çevrimdışı'}</span>
+            {pending > 0 && <span className="ml-auto rounded bg-amber-500 px-1.5 text-[10px] text-white">{pending} bekliyor</span>}
+          </div>
           <div className="font-medium">{user?.fullName}</div>
           <div className="text-slate-400">{user?.role}</div>
           <button onClick={logout} className="mt-2 w-full rounded bg-slate-700 hover:bg-slate-600 py-1.5">

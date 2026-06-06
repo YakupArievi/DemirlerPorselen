@@ -17,6 +17,10 @@ public sealed class VariantsController : ApiControllerBase
         _priceService = priceService;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] Toptanci.Application.Common.PageQuery query, CancellationToken ct)
+        => Ok(await _service.GetAllAsync(query, ct));
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
         => (await _service.GetByIdAsync(id, ct)).ToActionResult();

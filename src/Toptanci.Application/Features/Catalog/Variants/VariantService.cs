@@ -9,6 +9,7 @@ namespace Toptanci.Application.Features.Catalog.Variants;
 
 public interface IVariantService
 {
+    Task<PagedResult<VariantDto>> GetAllAsync(PageQuery query, CancellationToken ct = default);
     Task<Result<IReadOnlyList<VariantDto>>> GetByProductAsync(Guid productId, CancellationToken ct = default);
     Task<Result<VariantDto>> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<Result<VariantDto>> CreateAsync(CreateVariantRequest request, CancellationToken ct = default);
@@ -26,6 +27,23 @@ public sealed class VariantService : IVariantService
     {
         _db = db;
         _barcodeGenerator = barcodeGenerator;
+    }
+
+    public async Task<PagedResult<VariantDto>> GetAllAsync(PageQuery query, CancellationToken ct = default)
+    {
+        var q = _db.ProductVariants.AsNoTracking().Where(v => v.IsActive);
+        if (!string.IsNullOrWhiteSpace(query.Search))
+            q = q.Where(v => v.Product.Name.Contains(query.Search) || v.AdetBarcode == query.Search || v.KoliBarcode == query.Search);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .OrderBy(v => v.Product.Name).ThenBy(v => v.Color)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(ToDto)
+            .ToListAsync(ct);
+
+        return new PagedResult<VariantDto>(items, total, query.Page, query.PageSize);
     }
 
     public async Task<Result<IReadOnlyList<VariantDto>>> GetByProductAsync(Guid productId, CancellationToken ct = default)

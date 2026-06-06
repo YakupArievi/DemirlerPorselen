@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 import { api, apiErrorMessage } from '../api/client';
 import type { Customer, Statement } from '../api/types';
 import { tl, dateStr } from '../lib/format';
 import { downloadPdf } from '../lib/download';
 import { inputCls, btnPrimary, btnGhost } from '../components/Modal';
+import { enqueue } from '../offline/sync';
+import { useOffline } from '../offline/store';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -18,13 +21,26 @@ export function CustomerDetail() {
   const customer = useQuery({ queryKey: ['customer', id], queryFn: async () => (await api.get<Customer>(`/customers/${id}`)).data });
   const statement = useQuery({ queryKey: ['statement', id], queryFn: async () => (await api.get<Statement>(`/customers/${id}/statement`)).data });
 
+  const refreshPending = useOffline((s) => s.refreshPending);
+
   const pay = useMutation({
-    mutationFn: async () => api.post('/payments', {
-      customerId: id, type: payType, amount: payAmount,
-      dueDate: payType === 'Cek' && dueDate ? dueDate : null, idempotencyKey: crypto.randomUUID(),
-    }),
-    onSuccess: () => {
-      setMsg('Tahsilat kaydedildi.'); setPayAmount(0);
+    mutationFn: async () => {
+      const opId = crypto.randomUUID();
+      const body = {
+        customerId: id, type: payType, amount: payAmount,
+        dueDate: payType === 'Cek' && dueDate ? dueDate : null, idempotencyKey: opId,
+      };
+      if (!navigator.onLine) { await enqueue('payment', '/payments', body, opId); return { queued: true }; }
+      try { await api.post('/payments', body); return { queued: false }; }
+      catch (e) {
+        if (axios.isAxiosError(e) && !e.response) { await enqueue('payment', '/payments', body, opId); return { queued: true }; }
+        throw e;
+      }
+    },
+    onSuccess: async (r) => {
+      setMsg(r.queued ? 'Çevrimdışı: tahsilat kuyruğa alındı.' : 'Tahsilat kaydedildi.');
+      setPayAmount(0);
+      await refreshPending();
       qc.invalidateQueries({ queryKey: ['customer', id] });
       qc.invalidateQueries({ queryKey: ['statement', id] });
     },

@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 import { api, apiErrorMessage } from '../api/client';
 import type { Customer, Paged, ResolvedBarcode, Sale, UnitType, Warehouse } from '../api/types';
 import { tl } from '../lib/format';
 import { inputCls, btnPrimary, btnGhost } from '../components/Modal';
+import { resolveBarcodeLocal, enqueue } from '../offline/sync';
+import { useOffline } from '../offline/store';
 
 interface CartItem {
   key: string; variantId: string; name: string; unitType: UnitType;
@@ -24,6 +27,7 @@ export function SalesScreen() {
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const barcodeRef = useRef<HTMLInputElement>(null);
+  const refreshPending = useOffline((s) => s.refreshPending);
 
   useEffect(() => {
     if (warehouses.data && !warehouseId && warehouses.data.length > 0) {
@@ -35,8 +39,18 @@ export function SalesScreen() {
   const addBarcode = async (code: string) => {
     if (!code.trim()) return;
     try {
-      const res = await api.get<ResolvedBarcode>(`/variants/resolve?barcode=${encodeURIComponent(code.trim())}`);
-      const r = res.data;
+      let r: ResolvedBarcode | null = null;
+      if (navigator.onLine) {
+        try {
+          r = (await api.get<ResolvedBarcode>(`/variants/resolve?barcode=${encodeURIComponent(code.trim())}`)).data;
+        } catch (err) {
+          if (axios.isAxiosError(err) && err.response) throw err; // 404 vb. gerçek hata
+          r = await resolveBarcodeLocal(code); // ağ hatası -> yerel
+        }
+      } else {
+        r = await resolveBarcodeLocal(code);
+      }
+      if (!r) { setMsg({ kind: 'err', text: 'Barkod bulunamadı (çevrimdışı önbellekte de yok).' }); return; }
       setCart((c) => {
         const existing = c.find((i) => i.variantId === r.variantId && i.unitType === r.unitType);
         if (existing) return c.map((i) => i === existing ? { ...i, quantity: i.quantity + 1 } : i);
@@ -68,18 +82,28 @@ export function SalesScreen() {
     if (!warehouseId) return setMsg({ kind: 'err', text: 'Depo seçin.' });
     if (cart.length === 0) return setMsg({ kind: 'err', text: 'Sepet boş.' });
     setBusy(true);
+    const opId = crypto.randomUUID();
+    const body = {
+      customerId, warehouseId, idempotencyKey: opId,
+      documentDiscount: docDiscount,
+      initialPayment: payType && payAmount > 0 ? { type: payType, amount: payAmount } : null,
+      lines: cart.map((i) => ({ variantId: i.variantId, unitType: i.unitType, quantity: i.quantity, unitPrice: i.unitPrice, lineDiscount: i.lineDiscount })),
+    };
+    const queueIt = async () => {
+      await enqueue('sale', '/sales', body, opId);
+      await refreshPending();
+      setMsg({ kind: 'ok', text: 'Çevrimdışı: satış kuyruğa alındı, bağlantı gelince gönderilecek.' });
+      setCart([]); setDocDiscount(0); setPayType(''); setPayAmount(0);
+    };
     try {
-      const body = {
-        customerId, warehouseId, idempotencyKey: crypto.randomUUID(),
-        documentDiscount: docDiscount,
-        initialPayment: payType && payAmount > 0 ? { type: payType, amount: payAmount } : null,
-        lines: cart.map((i) => ({ variantId: i.variantId, unitType: i.unitType, quantity: i.quantity, unitPrice: i.unitPrice, lineDiscount: i.lineDiscount })),
-      };
+      if (!navigator.onLine) { await queueIt(); return; }
       const res = await api.post<Sale>('/sales', body);
       setMsg({ kind: 'ok', text: `Satış #${res.data.saleNumber} kaydedildi (${tl(res.data.grandTotal)}).` });
       setCart([]); setDocDiscount(0); setPayType(''); setPayAmount(0);
     } catch (e) {
-      setMsg({ kind: 'err', text: apiErrorMessage(e) });
+      // Ağ hatası -> kuyruğa al; iş kuralı hatası -> göster
+      if (axios.isAxiosError(e) && !e.response) { await queueIt(); }
+      else setMsg({ kind: 'err', text: apiErrorMessage(e) });
     } finally {
       setBusy(false);
     }
