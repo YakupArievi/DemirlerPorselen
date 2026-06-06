@@ -6,8 +6,10 @@ using Toptanci.Application.Common.Abstractions;
 namespace Toptanci.Infrastructure.Persistence;
 
 /// <summary>
-/// Ham ADO ile "SELECT NEXT VALUE FOR [seq]" çalıştırır.
-/// (EF SqlQueryRaw sorguyu alt-sorguya sarar; NEXT VALUE FOR alt-sorguda yasaktır.)
+/// Bir DB sequence'inden sonraki değeri ham ADO ile alır. Provider-bağımsız:
+///   - SQL Server: SELECT NEXT VALUE FOR [seq]
+///   - PostgreSQL: SELECT nextval('"seq"')
+/// (EF SqlQueryRaw sorguyu alt-sorguya sarar; bu ifadeler alt-sorguda yasaktır, bu yüzden ham komut.)
 /// Açık bir transaction varsa ona katılır.
 /// </summary>
 public sealed class SequenceGenerator : ISequenceGenerator
@@ -26,7 +28,9 @@ public sealed class SequenceGenerator : ISequenceGenerator
         try
         {
             await using var command = connection.CreateCommand();
-            command.CommandText = $"SELECT NEXT VALUE FOR [{sequenceName}]";
+            command.CommandText = _context.Database.IsNpgsql()
+                ? $"SELECT nextval('\"{sequenceName}\"')"
+                : $"SELECT NEXT VALUE FOR [{sequenceName}]";
 
             if (_context.Database.CurrentTransaction is { } transaction)
                 command.Transaction = transaction.GetDbTransaction();

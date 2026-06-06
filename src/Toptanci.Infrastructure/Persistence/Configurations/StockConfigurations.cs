@@ -11,7 +11,7 @@ public sealed class WarehouseConfiguration : IEntityTypeConfiguration<Warehouse>
         builder.ToTable("Warehouses");
         builder.Property(w => w.Name).IsRequired().HasMaxLength(100);
         builder.Property(w => w.Code).HasMaxLength(20);
-        builder.HasIndex(w => w.Code).IsUnique().HasFilter("[Code] IS NOT NULL");
+        builder.HasIndex(w => w.Code).IsUnique();
     }
 }
 
@@ -47,7 +47,7 @@ public sealed class StockMovementConfiguration : IEntityTypeConfiguration<StockM
         builder.Property(m => m.IdempotencyKey).HasMaxLength(100);
         builder.Property(m => m.Note).HasMaxLength(500);
 
-        builder.HasIndex(m => m.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+        builder.HasIndex(m => m.IdempotencyKey).IsUnique();
         builder.HasIndex(m => new { m.VariantId, m.WarehouseId });
         builder.HasIndex(m => new { m.ReferenceType, m.ReferenceId });
 

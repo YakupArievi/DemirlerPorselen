@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Toptanci.Domain.Common;
 
 /// <summary>
@@ -11,8 +9,8 @@ public abstract class BaseEntity : IEntity
 }
 
 /// <summary>
-/// Denetim (audit), soft delete ve optimistic concurrency içeren temel entity.
-/// Sistemdeki entity'lerin çoğu bundan türer.
+/// Denetim (audit) ve soft delete içeren temel entity. Sistemdeki entity'lerin çoğu bundan türer.
+/// Not: Optimistic concurrency için SQL Server'a özel rowversion kullanılmaz (DB-bağımsızlık).
 /// </summary>
 public abstract class AuditableEntity : BaseEntity, IAuditableEntity, ISoftDelete
 {
@@ -24,8 +22,4 @@ public abstract class AuditableEntity : BaseEntity, IAuditableEntity, ISoftDelet
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public string? DeletedBy { get; set; }
-
-    /// <summary>Optimistic concurrency için SQL Server rowversion (otomatik).</summary>
-    [Timestamp]
-    public byte[]? RowVersion { get; set; }
 }

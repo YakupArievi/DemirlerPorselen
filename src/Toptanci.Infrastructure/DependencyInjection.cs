@@ -20,9 +20,10 @@ public static class DependencyInjection
 
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
-            options.UseSqlServer(
-                configuration.GetConnectionString("DefaultConnection"),
-                sql => sql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName));
+            DbProviderConfigurator.Configure(
+                options,
+                configuration["Database:Provider"],
+                configuration.GetConnectionString("DefaultConnection"));
 
             options.AddInterceptors(sp.GetRequiredService<AuditableEntityInterceptor>());
 

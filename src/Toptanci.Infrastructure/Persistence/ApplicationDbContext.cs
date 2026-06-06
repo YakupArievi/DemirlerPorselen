@@ -73,5 +73,40 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             if (pk is { Properties.Count: 1 } && pk.Properties[0] is { Name: "Id", ClrType: var t } idProp && t == typeof(Guid))
                 idProp.ValueGenerated = Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.Never;
         }
+
+        ApplyProviderAwareIndexFilters(modelBuilder);
+    }
+
+    /// <summary>
+    /// Kısmi (filtreli) unique index'leri provider'a göre uygular (DB-bağımsızlık):
+    ///  - SQL Server: nullable unique sütunlarda yalnızca tek NULL'a izin verir; bu yüzden "X IS NOT NULL" filtresi gerekir.
+    ///  - PostgreSQL: NULL'lar zaten distinct sayılır; IdempotencyKey/Code için filtre gereksizdir.
+    ///  - Customer.Phone: her iki provider'da da yalnızca portal açık müşterilerde benzersiz (kısmi index).
+    /// </summary>
+    private void ApplyProviderAwareIndexFilters(ModelBuilder modelBuilder)
+    {
+        var npgsql = Database.IsNpgsql();
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var index in entityType.GetIndexes())
+            {
+                if (!index.IsUnique || index.Properties.Count != 1)
+                    continue;
+
+                var name = index.Properties[0].Name;
+
+                if (name is "IdempotencyKey" or "Code")
+                {
+                    index.SetFilter(npgsql ? null : $"[{name}] IS NOT NULL");
+                }
+                else if (entityType.ClrType == typeof(Customer) && name == "Phone")
+                {
+                    index.SetFilter(npgsql
+                        ? "\"PortalEnabled\" AND \"Phone\" IS NOT NULL"
+                        : "[PortalEnabled] = 1 AND [Phone] IS NOT NULL");
+                }
+            }
+        }
     }
 }

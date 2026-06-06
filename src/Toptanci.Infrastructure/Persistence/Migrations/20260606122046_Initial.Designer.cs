@@ -12,8 +12,8 @@ using Toptanci.Infrastructure.Persistence;
 namespace Toptanci.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260602212256_Operations")]
-    partial class Operations
+    [Migration("20260606122046_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,7 +33,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.AccountTransaction", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -92,7 +91,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.Brand", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -124,11 +122,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
@@ -139,7 +132,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.BrokenProductRecord", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -177,11 +169,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("RecordDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.Property<Guid>("VariantId")
                         .HasColumnType("uniqueidentifier");
 
@@ -200,7 +187,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.Category", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -236,11 +222,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
@@ -251,7 +232,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.Customer", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Address")
@@ -299,14 +279,16 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<string>("Phone")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
+                    b.Property<bool>("PortalEnabled")
+                        .HasColumnType("bit");
 
                     b.Property<string>("TaxNumber")
                         .HasMaxLength(20)
@@ -316,15 +298,52 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Name");
 
-                    b.HasIndex("Phone");
+                    b.HasIndex("Phone")
+                        .IsUnique()
+                        .HasFilter("[PortalEnabled] = 1 AND [Phone] IS NOT NULL");
 
                     b.ToTable("Customers", (string)null);
+                });
+
+            modelBuilder.Entity("Toptanci.Domain.Entities.CustomerRefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReplacedByToken")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("CustomerRefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("Toptanci.Domain.Entities.Payment", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Amount")
@@ -369,11 +388,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("PaymentDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.Property<Guid?>("SaleId")
                         .HasColumnType("uniqueidentifier");
 
@@ -396,7 +410,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.PriceHistory", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -440,7 +453,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.Product", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("BrandId")
@@ -482,11 +494,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.HasKey("Id");
 
                     b.HasIndex("BrandId");
@@ -501,7 +508,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.ProductVariant", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("AdetBarcode")
@@ -567,11 +573,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.Property<decimal>("SalePrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -596,7 +597,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -633,7 +633,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.Sale", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("CancelledAt")
@@ -687,11 +686,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.Property<DateTime>("SaleDate")
                         .HasColumnType("datetime2");
 
@@ -727,7 +721,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.SaleLine", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("AdetQuantity")
@@ -773,7 +766,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.SaleReturn", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -811,11 +803,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("ReturnDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.Property<Guid>("SaleId")
                         .HasColumnType("uniqueidentifier");
 
@@ -840,7 +827,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.SaleReturnLine", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("AdetQuantity")
@@ -877,7 +863,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.StockCount", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("ApprovedAt")
@@ -911,11 +896,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -932,7 +912,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.StockCountLine", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("CountedQuantity")
@@ -960,7 +939,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.StockItem", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -987,11 +965,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.Property<Guid>("VariantId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1011,7 +984,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.StockMovement", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1075,7 +1047,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1115,11 +1086,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1136,7 +1102,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.Warehouse", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Code")
@@ -1175,11 +1140,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
@@ -1192,7 +1152,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.WarehouseTransfer", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1224,11 +1183,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.Property<Guid>("SourceWarehouseId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1254,7 +1208,6 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.WarehouseTransferLine", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Quantity")
@@ -1303,6 +1256,17 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
                     b.Navigation("Variant");
 
                     b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("Toptanci.Domain.Entities.CustomerRefreshToken", b =>
+                {
+                    b.HasOne("Toptanci.Domain.Entities.Customer", "Customer")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("Toptanci.Domain.Entities.Payment", b =>
@@ -1553,6 +1517,8 @@ namespace Toptanci.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Toptanci.Domain.Entities.Customer", b =>
                 {
                     b.Navigation("AccountTransactions");
+
+                    b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("Toptanci.Domain.Entities.Product", b =>

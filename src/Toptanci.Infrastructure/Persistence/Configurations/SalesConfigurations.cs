@@ -18,8 +18,9 @@ public sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.Balance).HasPrecision(18, 2);
         builder.Property(c => c.PasswordHash).HasMaxLength(256);
         builder.HasIndex(c => c.Name);
-        // Portal girişi açık müşteriler için telefon benzersiz olmalı (kullanıcı adı); arama için de indeks
-        builder.HasIndex(c => c.Phone).IsUnique().HasFilter("[PortalEnabled] = 1 AND [Phone] IS NOT NULL");
+        // Portal girişi açık müşteriler için telefon benzersiz olmalı (kullanıcı adı).
+        // Kısmi filtre (PortalEnabled) provider-aware olarak OnModelCreating'de uygulanır.
+        builder.HasIndex(c => c.Phone).IsUnique();
 
         builder.HasMany(c => c.RefreshTokens)
             .WithOne(rt => rt.Customer)
@@ -51,7 +52,7 @@ public sealed class AccountTransactionConfiguration : IEntityTypeConfiguration<A
         builder.Property(t => t.IdempotencyKey).HasMaxLength(100);
         builder.Property(t => t.Note).HasMaxLength(500);
 
-        builder.HasIndex(t => t.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+        builder.HasIndex(t => t.IdempotencyKey).IsUnique();
         builder.HasIndex(t => t.CustomerId);
         builder.HasIndex(t => new { t.ReferenceType, t.ReferenceId });
 
@@ -76,7 +77,7 @@ public sealed class SaleConfiguration : IEntityTypeConfiguration<Sale>
         builder.Property(s => s.Note).HasMaxLength(500);
 
         builder.HasIndex(s => s.SaleNumber).IsUnique();
-        builder.HasIndex(s => s.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+        builder.HasIndex(s => s.IdempotencyKey).IsUnique();
         builder.HasIndex(s => s.CustomerId);
 
         builder.HasOne(s => s.Customer).WithMany().HasForeignKey(s => s.CustomerId).OnDelete(DeleteBehavior.Restrict);
@@ -109,7 +110,7 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.Property(p => p.IdempotencyKey).HasMaxLength(100);
         builder.Property(p => p.Note).HasMaxLength(500);
 
-        builder.HasIndex(p => p.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+        builder.HasIndex(p => p.IdempotencyKey).IsUnique();
         builder.HasIndex(p => p.CustomerId);
 
         builder.HasOne(p => p.Customer).WithMany().HasForeignKey(p => p.CustomerId).OnDelete(DeleteBehavior.Restrict);
@@ -126,7 +127,7 @@ public sealed class SaleReturnConfiguration : IEntityTypeConfiguration<SaleRetur
         builder.Property(r => r.IdempotencyKey).HasMaxLength(100);
         builder.Property(r => r.Note).HasMaxLength(500);
 
-        builder.HasIndex(r => r.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+        builder.HasIndex(r => r.IdempotencyKey).IsUnique();
         builder.HasIndex(r => r.SaleId);
 
         builder.HasOne(r => r.Sale).WithMany().HasForeignKey(r => r.SaleId).OnDelete(DeleteBehavior.Restrict);

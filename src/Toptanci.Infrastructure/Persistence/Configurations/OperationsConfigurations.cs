@@ -48,7 +48,7 @@ public sealed class WarehouseTransferConfiguration : IEntityTypeConfiguration<Wa
         builder.ToTable("WarehouseTransfers");
         builder.Property(t => t.Note).HasMaxLength(500);
         builder.Property(t => t.IdempotencyKey).HasMaxLength(100);
-        builder.HasIndex(t => t.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+        builder.HasIndex(t => t.IdempotencyKey).IsUnique();
 
         builder.HasOne(t => t.SourceWarehouse).WithMany().HasForeignKey(t => t.SourceWarehouseId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(t => t.TargetWarehouse).WithMany().HasForeignKey(t => t.TargetWarehouseId).OnDelete(DeleteBehavior.Restrict);
