@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, apiErrorMessage } from '../api/client';
-import type { Paged, ResolvedBarcode, StockLevel, UnitType, Warehouse } from '../api/types';
+import type { Paged, ResolvedBarcode, StockLevel, UnitType, Variant, Warehouse } from '../api/types';
 import { downloadPdf } from '../lib/download';
 import { inputCls, btnPrimary, btnGhost } from '../components/Modal';
+import { VariantPicker } from '../components/VariantPicker';
 
 interface EntryLine { key: string; variantId: string; name: string; unitType: UnitType; quantity: number; unitPurchasePrice: number; }
 
@@ -25,6 +26,15 @@ export function StockPage() {
     queryFn: async () => (await api.get<Paged<StockLevel>>(`/stock/warehouse/${warehouseId}?pageSize=200`)).data,
     enabled: !!warehouseId,
   });
+
+  // Listeden ürün seç -> giriş satırı ekle (alış fiyatı varyanttan gelir, düzenlenebilir)
+  const addVariant = (v: Variant) => {
+    setLines((l) => [...l, {
+      key: crypto.randomUUID(), variantId: v.id,
+      name: `${v.productName} ${v.color ?? ''} ${v.size ?? ''}`.trim(),
+      unitType: 'Adet', quantity: 1, unitPurchasePrice: v.purchasePrice,
+    }]);
+  };
 
   const addBarcode = async (code: string) => {
     if (!code.trim()) return;
@@ -67,9 +77,14 @@ export function StockPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-lg bg-white p-4 shadow">
-          <h2 className="mb-3 font-semibold text-slate-700">Ürün Girişi</h2>
-          <input className={inputCls + ' mb-2'} placeholder="Barkod okut + Enter" value={barcode}
-            onChange={(e) => setBarcode(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addBarcode(barcode); }} />
+          <h2 className="mb-1 font-semibold text-slate-700">Ürün Girişi</h2>
+          <p className="mb-2 text-xs text-slate-400">Ürünü listeden seç, miktar ve alış fiyatını gir, kaydet.</p>
+          <VariantPicker onPick={addVariant} />
+          <div className="mb-2 mt-2 flex items-center gap-2">
+            <span className="text-xs text-slate-400">veya barkod:</span>
+            <input className={inputCls + ' max-w-xs'} placeholder="Barkod okut + Enter" value={barcode}
+              onChange={(e) => setBarcode(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addBarcode(barcode); }} />
+          </div>
           <table className="mb-2 w-full text-xs">
             <thead className="text-left text-slate-500"><tr><th className="p-1">Ürün</th><th className="p-1 w-20">Miktar</th><th className="p-1 w-24">Alış</th><th></th></tr></thead>
             <tbody>

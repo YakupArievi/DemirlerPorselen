@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { api, apiErrorMessage } from '../api/client';
-import type { Customer, Paged, ResolvedBarcode, Sale, UnitType, Warehouse } from '../api/types';
+import type { Customer, Paged, ResolvedBarcode, Sale, UnitType, Variant, Warehouse } from '../api/types';
 import { tl } from '../lib/format';
 import { inputCls, btnPrimary, btnGhost } from '../components/Modal';
+import { VariantPicker } from '../components/VariantPicker';
 import { resolveBarcodeLocal, enqueue } from '../offline/sync';
 import { useOffline } from '../offline/store';
 
@@ -68,6 +69,20 @@ export function SalesScreen() {
     }
   };
 
+  // Listeden ürün seç -> sepete ekle (adet bazlı, fiyat = satış fiyatı). Aynı ürün tekrar seçilirse adet artar.
+  const addVariant = (v: Variant, unitType: UnitType = 'Adet') => {
+    setCart((c) => {
+      const existing = c.find((i) => i.variantId === v.id && i.unitType === unitType);
+      if (existing) return c.map((i) => i === existing ? { ...i, quantity: i.quantity + 1 } : i);
+      const unitPrice = unitType === 'Koli' ? v.salePrice * v.koliIciAdet : v.salePrice;
+      return [...c, {
+        key: crypto.randomUUID(), variantId: v.id,
+        name: `${v.productName} ${v.color ?? ''} ${v.size ?? ''} (${unitType})`.trim(),
+        unitType, quantity: 1, unitPrice, lineDiscount: 0,
+      }];
+    });
+  };
+
   const update = (key: string, patch: Partial<CartItem>) =>
     setCart((c) => c.map((i) => i.key === key ? { ...i, ...patch } : i));
   const remove = (key: string) => setCart((c) => c.filter((i) => i.key !== key));
@@ -114,18 +129,32 @@ export function SalesScreen() {
       <h1 className="text-2xl font-bold text-slate-800">Satış</h1>
       {msg && <div className={`rounded p-2 text-sm ${msg.kind === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>{msg.text}</div>}
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <select className={inputCls} value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-          <option value="">Müşteri seçin...</option>
-          {customers.data?.items.map((c) => <option key={c.id} value={c.id}>{c.name} ({tl(c.balance)})</option>)}
-        </select>
-        <select className={inputCls} value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
-          <option value="">Depo seçin...</option>
-          {warehouses.data?.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-        </select>
-        <input ref={barcodeRef} className={inputCls} placeholder="Barkod okut / yaz + Enter" value={barcode}
-          onChange={(e) => setBarcode(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') addBarcode(barcode); }} autoFocus />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <label className="block">
+          <span className="mb-1 block text-sm text-slate-600">Müşteri</span>
+          <select className={inputCls} value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
+            <option value="">Müşteri seçin...</option>
+            {customers.data?.items.map((c) => <option key={c.id} value={c.id}>{c.name} ({tl(c.balance)})</option>)}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-sm text-slate-600">Depo</span>
+          <select className={inputCls} value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
+            <option value="">Depo seçin...</option>
+            {warehouses.data?.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+          </select>
+        </label>
+      </div>
+
+      <div className="rounded-lg bg-white p-4 shadow">
+        <span className="mb-1 block text-sm font-medium text-slate-700">Ürün Ekle</span>
+        <VariantPicker onPick={(v) => addVariant(v, 'Adet')} />
+        <div className="mt-2 flex items-center gap-2">
+          <span className="text-xs text-slate-400">veya barkod:</span>
+          <input ref={barcodeRef} className={inputCls + ' max-w-xs'} placeholder="Barkod okut + Enter" value={barcode}
+            onChange={(e) => setBarcode(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') addBarcode(barcode); }} />
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-lg bg-white shadow">
