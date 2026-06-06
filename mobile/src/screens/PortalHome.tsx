@@ -1,51 +1,56 @@
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { FlatList, Modal, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { API_BASE, api, apiError, dateStr, getAccessToken, logout, tl, type Session } from '../api';
-import { Btn, Card, Center, Field, Row, TabBar, colors, s } from '../ui';
+import { Btn, BottomTabs, Card, Empty, Field, Loading, Row, colors, refresh, s } from '../ui';
 
 const TABS = [
-  { key: 'balance', label: 'Borç' },
-  { key: 'statement', label: 'Ekstre' },
-  { key: 'sales', label: 'Aldıklarım' },
-  { key: 'profile', label: 'Profil' },
+  { key: 'balance', label: 'Borç', icon: 'wallet' },
+  { key: 'statement', label: 'Ekstre', icon: 'document-text' },
+  { key: 'sales', label: 'Aldıklarım', icon: 'cart' },
+  { key: 'profile', label: 'Profil', icon: 'person' },
 ];
 
 export function PortalHome({ session, onLogout }: { session: Session; onLogout: () => void }) {
   const [tab, setTab] = useState('balance');
   const doLogout = async () => { await logout(); onLogout(); };
-
   return (
     <SafeAreaView style={s.fill}>
       <View style={s.header}>
-        <Text style={s.h1}>{session.user?.name ?? 'Hesabım'}</Text>
-        <Pressable onPress={doLogout}><Text style={{ color: colors.sub }}>Çıkış</Text></Pressable>
+        <View>
+          <Text style={s.h1}>{session.user?.name ?? 'Hesabım'}</Text>
+          <Text style={{ color: colors.sub, fontSize: 12 }}>Müşteri Portalı</Text>
+        </View>
+        <Pressable onPress={doLogout} hitSlop={10}><Text style={{ color: colors.sub }}>Çıkış</Text></Pressable>
       </View>
-      <TabBar tabs={TABS} active={tab} onChange={setTab} />
       <View style={{ flex: 1 }}>
         {tab === 'balance' && <BalanceTab />}
         {tab === 'statement' && <StatementTab />}
         {tab === 'sales' && <SalesTab />}
         {tab === 'profile' && <ProfileTab session={session} />}
       </View>
+      <BottomTabs tabs={TABS} active={tab} onChange={setTab} />
     </SafeAreaView>
   );
 }
 
 function BalanceTab() {
   const q = useQuery({ queryKey: ['p-balance'], queryFn: async () => (await api.get('/portal/me/balance')).data as number });
-  if (q.isLoading) return <Center><ActivityIndicator color={colors.accent} /></Center>;
+  if (q.isLoading) return <Loading />;
   const bal = q.data ?? 0;
   return (
-    <View style={{ padding: 16 }}>
-      <Card>
+    <ScrollView contentContainerStyle={{ padding: 16 }} refreshControl={refresh(q.refetch, q.isRefetching)}>
+      <Card style={{ alignItems: 'center', paddingVertical: 28 }}>
         <Text style={{ color: colors.sub }}>Güncel Bakiye</Text>
-        <Text style={{ fontSize: 36, fontWeight: 'bold', color: bal > 0 ? colors.warn : colors.ok, marginVertical: 6 }}>{tl(bal)}</Text>
-        <Text style={{ color: colors.muted, fontSize: 12 }}>{bal > 0 ? 'Borcunuz bulunuyor' : 'Borcunuz yok'}</Text>
+        <Text style={{ fontSize: 40, fontWeight: 'bold', color: bal > 0 ? colors.warn : colors.ok, marginVertical: 8 }}>{tl(bal)}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: bal > 0 ? colors.warn : colors.ok }} />
+          <Text style={{ color: colors.muted, fontSize: 13 }}>{bal > 0 ? 'Borcunuz bulunuyor' : 'Borcunuz yok'}</Text>
+        </View>
       </Card>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -66,11 +71,12 @@ function StatementTab() {
     finally { setSharing(false); }
   };
 
-  if (q.isLoading) return <Center><ActivityIndicator color={colors.accent} /></Center>;
+  if (q.isLoading) return <Loading />;
   const st = q.data;
   return (
     <FlatList
       contentContainerStyle={{ padding: 16 }}
+      refreshControl={refresh(q.refetch, q.isRefetching)}
       ListHeaderComponent={
         <Card>
           <Row left="Açılış Bakiyesi" right={tl(st?.openingBalance ?? 0)} />
@@ -84,7 +90,7 @@ function StatementTab() {
       renderItem={({ item }: any) => (
         <Row left={item.type} sub={dateStr(item.date)} right={item.debit ? `+${tl(item.debit)}` : `-${tl(item.credit)}`} />
       )}
-      ListEmptyComponent={<Text style={{ color: colors.muted, textAlign: 'center', marginTop: 30 }}>Hareket yok</Text>}
+      ListEmptyComponent={<Empty icon="receipt-outline" text="Hareket yok" />}
     />
   );
 }
@@ -92,11 +98,12 @@ function StatementTab() {
 function SalesTab() {
   const q = useQuery({ queryKey: ['p-sales'], queryFn: async () => (await api.get('/portal/me/sales')).data });
   const [detailId, setDetailId] = useState<string | null>(null);
-  if (q.isLoading) return <Center><ActivityIndicator color={colors.accent} /></Center>;
+  if (q.isLoading) return <Loading />;
   return (
     <>
       <FlatList
         contentContainerStyle={{ padding: 16 }}
+        refreshControl={refresh(q.refetch, q.isRefetching)}
         data={q.data?.items ?? []}
         keyExtractor={(it: any) => it.id}
         renderItem={({ item }: any) => (
@@ -104,7 +111,7 @@ function SalesTab() {
             <Row left={`Fiş #${item.saleNumber}`} sub={`${dateStr(item.saleDate)} · ${item.status === 'Cancelled' ? 'İptal' : 'Aktif'}`} right={tl(item.grandTotal)} />
           </Pressable>
         )}
-        ListEmptyComponent={<Text style={{ color: colors.muted, textAlign: 'center', marginTop: 30 }}>Alınan ürün yok</Text>}
+        ListEmptyComponent={<Empty icon="cart-outline" text="Alınan ürün yok" />}
       />
       <SaleDetailModal id={detailId} onClose={() => setDetailId(null)} />
     </>
@@ -119,9 +126,9 @@ function SaleDetailModal({ id, onClose }: { id: string | null; onClose: () => vo
         <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '80%' }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
             <Text style={s.h1}>Fiş #{q.data?.saleNumber ?? ''}</Text>
-            <Pressable onPress={onClose}><Text style={{ color: colors.sub, fontSize: 18 }}>✕</Text></Pressable>
+            <Pressable onPress={onClose} hitSlop={10}><Text style={{ color: colors.sub, fontSize: 18 }}>✕</Text></Pressable>
           </View>
-          {q.isLoading ? <ActivityIndicator color={colors.accent} /> : (
+          {q.isLoading ? <Loading /> : (
             <ScrollView>
               {(q.data?.lines ?? []).map((l: any) => (
                 <Row key={l.id} left={`${l.productName} ${l.color ?? ''} ${l.size ?? ''}`.trim()}

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { AppState } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getSession, type Session } from './src/api';
-import { Center, colors } from './src/ui';
+import { Loading } from './src/ui';
 import { Login } from './src/screens/Login';
 import { PortalHome } from './src/screens/PortalHome';
 import { StaffHome } from './src/screens/StaffHome';
@@ -30,7 +30,15 @@ function Root() {
 
   useEffect(() => { getSession().then((sess) => { setSession(sess); setLoading(false); }); }, []);
 
-  if (loading) return <Center><ActivityIndicator size="large" color={colors.accent} /></Center>;
+  // Uygulama öne gelince verileri tazele (web ile canlı senkron hissi)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st === 'active') qc.invalidateQueries();
+    });
+    return () => sub.remove();
+  }, []);
+
+  if (loading) return <Loading />;
   if (!session) return <Login onLogin={setSession} />;
   return session.mode === 'staff'
     ? <StaffHome session={session} onLogout={() => setSession(null)} />

@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { FlatList, Modal, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, apiError, dateStr, logout, tl, type Session } from '../api';
-import { Btn, Card, Center, Field, Row, TabBar, colors, s } from '../ui';
+import { Btn, BottomTabs, Card, Empty, Field, Loading, Row, StatCard, colors, refresh, s } from '../ui';
 
 const TABS = [
-  { key: 'dash', label: 'Panel' },
-  { key: 'sale', label: 'Satış' },
-  { key: 'cari', label: 'Cari' },
-  { key: 'stok', label: 'Stok' },
+  { key: 'dash', label: 'Panel', icon: 'grid' },
+  { key: 'sale', label: 'Satış', icon: 'cart' },
+  { key: 'cari', label: 'Cari', icon: 'people' },
+  { key: 'stok', label: 'Stok', icon: 'cube' },
 ];
 
 export function StaffHome({ session, onLogout }: { session: Session; onLogout: () => void }) {
@@ -17,41 +17,51 @@ export function StaffHome({ session, onLogout }: { session: Session; onLogout: (
   return (
     <SafeAreaView style={s.fill}>
       <View style={s.header}>
-        <Text style={s.h1}>{session.user?.fullName ?? 'Yönetim'}</Text>
-        <Pressable onPress={doLogout}><Text style={{ color: colors.sub }}>Çıkış</Text></Pressable>
+        <View>
+          <Text style={s.h1}>{session.user?.fullName ?? 'Yönetim'}</Text>
+          <Text style={{ color: colors.sub, fontSize: 12 }}>{session.user?.role ?? 'Personel'}</Text>
+        </View>
+        <Pressable onPress={doLogout} hitSlop={10}><Text style={{ color: colors.sub }}>Çıkış</Text></Pressable>
       </View>
-      <TabBar tabs={TABS} active={tab} onChange={setTab} />
       <View style={{ flex: 1 }}>
         {tab === 'dash' && <DashTab />}
         {tab === 'sale' && <SaleTab />}
         {tab === 'cari' && <CariTab />}
         {tab === 'stok' && <StokTab />}
       </View>
+      <BottomTabs tabs={TABS} active={tab} onChange={setTab} />
     </SafeAreaView>
   );
 }
 
 function DashTab() {
-  const q = useQuery({ queryKey: ['s-dash'], queryFn: async () => (await api.get('/dashboard/summary')).data });
-  if (q.isLoading || !q.data) return <Center><ActivityIndicator color={colors.accent} /></Center>;
+  const q = useQuery({ queryKey: ['s-dash'], queryFn: async () => (await api.get('/dashboard/summary')).data, refetchInterval: 30000 });
+  if (q.isLoading || !q.data) return <Loading />;
   const d = q.data;
-  const Stat = ({ t, v, c }: { t: string; v: string; c?: string }) => (
-    <Card style={{ flex: 1, minWidth: '44%' }}>
-      <Text style={{ color: colors.sub, fontSize: 12 }}>{t}</Text>
-      <Text style={{ color: c ?? colors.text, fontSize: 20, fontWeight: 'bold', marginTop: 4 }}>{v}</Text>
-    </Card>
-  );
   return (
-    <ScrollView contentContainerStyle={{ padding: 12 }}>
+    <ScrollView contentContainerStyle={{ padding: 12 }} refreshControl={refresh(q.refetch, q.isRefetching)}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <Stat t="Bugün Ciro" v={tl(d.todayRevenue)} c={colors.accent2} />
-        <Stat t="Bu Ay Ciro" v={tl(d.monthRevenue)} c={colors.accent2} />
-        <Stat t="Bugün Tahsilat" v={tl(d.todayCollections)} c={colors.ok} />
-        <Stat t="Toplam Alacak" v={tl(d.totalReceivables)} c={colors.warn} />
-        <Stat t="Kritik Stok" v={`${d.criticalStockCount}`} c={colors.danger} />
-        <Stat t="Bu Ay Kırık" v={`${d.brokenQuantityThisMonth}`} c={colors.danger} />
+        <StatCard title="Bugün Ciro" value={tl(d.todayRevenue)} color={colors.accent2} icon="cash" />
+        <StatCard title="Bu Ay Ciro" value={tl(d.monthRevenue)} color={colors.accent2} icon="trending-up" />
+        <StatCard title="Bugün Tahsilat" value={tl(d.todayCollections)} color={colors.ok} icon="wallet" />
+        <StatCard title="Toplam Alacak" value={tl(d.totalReceivables)} color={colors.warn} icon="alert-circle" />
+        <StatCard title="Kritik Stok" value={`${d.criticalStockCount} ürün`} color={colors.danger} icon="warning" />
+        <StatCard title="Bu Ay Kırık" value={`${d.brokenQuantityThisMonth} adet`} color={colors.danger} icon="trash" />
       </View>
-      <Text style={{ color: colors.text, fontWeight: '600', marginTop: 12, marginBottom: 6 }}>Son Satışlar</Text>
+
+      <Text style={s.section}>Kritik Stoklar</Text>
+      {(d.criticalStocks ?? []).length === 0 ? <Text style={s.dim}>Yok</Text> :
+        (d.criticalStocks ?? []).map((c: any) => (
+          <Row key={c.variantId} left={`${c.productName} ${c.color ?? ''} ${c.size ?? ''}`.trim()} right={`${c.totalQuantity}/${c.minStock}`} />
+        ))}
+
+      <Text style={s.section}>En Çok Satanlar (Bu Ay)</Text>
+      {(d.topProducts ?? []).length === 0 ? <Text style={s.dim}>Veri yok</Text> :
+        (d.topProducts ?? []).map((p: any) => (
+          <Row key={p.variantId} left={`${p.productName} ${p.color ?? ''}`.trim()} sub={`${p.soldQuantity} adet`} right={tl(p.revenue)} />
+        ))}
+
+      <Text style={s.section}>Son Satışlar</Text>
       {(d.recentSales ?? []).map((x: any) => (
         <Row key={x.id} left={`#${x.saleNumber} ${x.customerName}`} sub={dateStr(x.saleDate)} right={tl(x.grandTotal)} />
       ))}
@@ -59,21 +69,23 @@ function DashTab() {
   );
 }
 
-/** Basit modal liste seçici */
 function Selector<T>({ visible, title, items, label, onPick, onClose }: {
   visible: boolean; title: string; items: T[]; label: (x: T) => string; onPick: (x: T) => void; onClose: () => void;
 }) {
+  const [q, setQ] = useState('');
+  const filtered = q ? items.filter((x) => label(x).toLowerCase().includes(q.toLowerCase())) : items;
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: '#000a', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '70%' }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+        <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '75%' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
             <Text style={s.h1}>{title}</Text>
-            <Pressable onPress={onClose}><Text style={{ color: colors.sub, fontSize: 18 }}>✕</Text></Pressable>
+            <Pressable onPress={onClose} hitSlop={10}><Text style={{ color: colors.sub, fontSize: 18 }}>✕</Text></Pressable>
           </View>
-          <FlatList data={items} keyExtractor={(_, i) => String(i)}
+          <Field value={q} onChangeText={setQ} placeholder="Ara..." />
+          <FlatList data={filtered} keyExtractor={(_, i) => String(i)}
             renderItem={({ item }) => (
-              <Pressable onPress={() => { onPick(item); onClose(); }}><Row left={label(item)} /></Pressable>
+              <Pressable onPress={() => { onPick(item); onClose(); setQ(''); }}><Row left={label(item)} /></Pressable>
             )} />
         </View>
       </View>
@@ -119,25 +131,25 @@ function SaleTab() {
         documentDiscount: 0, lines: cart.map((i) => ({ variantId: i.variantId, unitType: i.unitType, quantity: i.quantity, unitPrice: i.unitPrice, lineDiscount: 0 })),
       });
       setMsg({ ok: true, text: `Satış #${res.data.saleNumber} kaydedildi (${tl(res.data.grandTotal)})` });
-      setCart([]); qc.invalidateQueries({ queryKey: ['s-dash'] });
+      setCart([]); qc.invalidateQueries({ queryKey: ['s-dash'] }); qc.invalidateQueries({ queryKey: ['s-custs'] });
     } catch (e) { setMsg({ ok: false, text: apiError(e) }); }
     finally { setBusy(false); }
   };
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
       {msg ? <Text style={{ color: msg.ok ? colors.ok : '#f87171', marginBottom: 10 }}>{msg.text}</Text> : null}
       <Pressable onPress={() => setPickCust(true)}><Field label="Müşteri" editable={false} pointerEvents="none" value={customer?.name ?? ''} placeholder="Müşteri seç..." /></Pressable>
       <Text style={{ color: colors.sub, fontSize: 12, marginBottom: 8 }}>Depo: {wh?.name ?? '...'}</Text>
       <Field label="Barkod" value={barcode} onChangeText={setBarcode} onSubmitEditing={add} returnKeyType="done" placeholder="Barkod oku/yaz + enter" />
       {cart.map((i) => (
-        <View key={i.key} style={[s.row]}>
+        <View key={i.key} style={s.row}>
           <View style={{ flex: 1 }}>
             <Text style={s.rowMain}>{i.name}</Text>
-            <Text style={s.rowSub}>{tl(i.unitPrice)} × {i.quantity}</Text>
+            <Text style={s.rowSub}>{tl(i.unitPrice)} × {i.quantity} = {tl(i.unitPrice * i.quantity)}</Text>
           </View>
-          <Pressable onPress={() => setCart((c) => c.map((x) => x.key === i.key ? { ...x, quantity: Math.max(1, x.quantity - 1) } : x))}><Text style={{ color: colors.accent2, fontSize: 22, paddingHorizontal: 8 }}>−</Text></Pressable>
-          <Text style={{ color: colors.text }}>{i.quantity}</Text>
+          <Pressable onPress={() => setCart((c) => c.map((x) => x.key === i.key ? { ...x, quantity: Math.max(1, x.quantity - 1) } : x))}><Text style={{ color: colors.accent2, fontSize: 24, paddingHorizontal: 8 }}>−</Text></Pressable>
+          <Text style={{ color: colors.text, minWidth: 18, textAlign: 'center' }}>{i.quantity}</Text>
           <Pressable onPress={() => setCart((c) => c.map((x) => x.key === i.key ? { ...x, quantity: x.quantity + 1 } : x))}><Text style={{ color: colors.accent2, fontSize: 22, paddingHorizontal: 8 }}>+</Text></Pressable>
           <Pressable onPress={() => setCart((c) => c.filter((x) => x.key !== i.key))}><Text style={{ color: colors.danger, paddingLeft: 6 }}>✕</Text></Pressable>
         </View>
@@ -159,12 +171,13 @@ function CariTab() {
     <View style={{ flex: 1, padding: 16 }}>
       <Field value={search} onChangeText={setSearch} placeholder="Müşteri ara..." />
       <FlatList data={q.data ?? []} keyExtractor={(c: any) => c.id}
+        refreshControl={refresh(q.refetch, q.isRefetching)}
         renderItem={({ item }: any) => (
           <Pressable onPress={() => setSel(item)}>
             <Row left={item.name} sub={item.phone ?? '-'} right={tl(item.balance)} />
           </Pressable>
         )}
-        ListEmptyComponent={<Text style={{ color: colors.muted, textAlign: 'center', marginTop: 20 }}>Müşteri yok</Text>} />
+        ListEmptyComponent={<Empty icon="people-outline" text="Müşteri yok" />} />
       <CariDetailModal customer={sel} onClose={() => setSel(null)} />
     </View>
   );
@@ -177,6 +190,7 @@ function CariDetailModal({ customer, onClose }: { customer: any; onClose: () => 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const bal = useQuery({ queryKey: ['s-cari-bal', customer?.id], enabled: !!customer, queryFn: async () => (await api.get(`/customers/${customer.id}/balance`)).data as number });
+  const sales = useQuery({ queryKey: ['s-cari-sales', customer?.id], enabled: !!customer, queryFn: async () => (await api.get(`/sales?pageSize=10&customerId=${customer.id}`)).data.items });
 
   const collect = async () => {
     setBusy(true); setMsg('');
@@ -191,25 +205,32 @@ function CariDetailModal({ customer, onClose }: { customer: any; onClose: () => 
   return (
     <Modal visible={!!customer} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: '#000a', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16 }}>
+        <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '85%' }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
             <Text style={s.h1}>{customer?.name}</Text>
-            <Pressable onPress={onClose}><Text style={{ color: colors.sub, fontSize: 18 }}>✕</Text></Pressable>
+            <Pressable onPress={onClose} hitSlop={10}><Text style={{ color: colors.sub, fontSize: 18 }}>✕</Text></Pressable>
           </View>
-          <Card><Row left="Güncel Bakiye" right={tl(bal.data ?? customer?.balance ?? 0)} /></Card>
-          <Card>
-            <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 10 }}>Tahsilat</Text>
-            {msg ? <Text style={{ color: colors.ok, marginBottom: 8 }}>{msg}</Text> : null}
-            <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
-              {['Nakit', 'Kart', 'Cek'].map((t) => (
-                <Pressable key={t} onPress={() => setType(t)} style={{ flex: 1, padding: 10, borderRadius: 8, alignItems: 'center', backgroundColor: type === t ? colors.accent : colors.card }}>
-                  <Text style={{ color: type === t ? '#fff' : colors.sub }}>{t}</Text>
-                </Pressable>
+          <ScrollView>
+            <Card><Row left="Güncel Bakiye" right={tl(bal.data ?? customer?.balance ?? 0)} /></Card>
+            <Card>
+              <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 10 }}>Tahsilat</Text>
+              {msg ? <Text style={{ color: colors.ok, marginBottom: 8 }}>{msg}</Text> : null}
+              <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
+                {['Nakit', 'Kart', 'Cek'].map((t) => (
+                  <Pressable key={t} onPress={() => setType(t)} style={{ flex: 1, padding: 10, borderRadius: 8, alignItems: 'center', backgroundColor: type === t ? colors.accent : colors.card }}>
+                    <Text style={{ color: type === t ? '#fff' : colors.sub }}>{t}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Field value={amount} onChangeText={setAmount} keyboardType="numeric" placeholder="Tutar" />
+              <Btn title="Tahsilat Ekle" onPress={collect} busy={busy} disabled={!Number(amount)} />
+            </Card>
+            <Text style={s.section}>Son Satışlar</Text>
+            {(sales.data ?? []).length === 0 ? <Text style={s.dim}>Satış yok</Text> :
+              (sales.data ?? []).map((x: any) => (
+                <Row key={x.id} left={`#${x.saleNumber}`} sub={dateStr(x.saleDate)} right={tl(x.grandTotal)} />
               ))}
-            </View>
-            <Field value={amount} onChangeText={setAmount} keyboardType="numeric" placeholder="Tutar" />
-            <Btn title="Tahsilat Ekle" onPress={collect} busy={busy} disabled={!Number(amount)} />
-          </Card>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -245,7 +266,7 @@ function StokTab() {
   };
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled" refreshControl={refresh(stock.refetch, stock.isRefetching)}>
       <Text style={{ color: colors.sub, fontSize: 12, marginBottom: 8 }}>Depo: {wh?.name ?? '...'}</Text>
       {msg ? <Text style={{ color: msg.ok ? colors.ok : '#f87171', marginBottom: 8 }}>{msg.text}</Text> : null}
       <Card>
@@ -260,10 +281,11 @@ function StokTab() {
         ))}
         <Btn title="Girişi Kaydet" onPress={submit} />
       </Card>
-      <Text style={{ color: colors.text, fontWeight: '600', marginTop: 8, marginBottom: 6 }}>Depo Stoğu</Text>
-      {(stock.data ?? []).map((x: any) => (
-        <Row key={x.variantId} left={`${x.productName} ${x.color ?? ''}`.trim()} sub={x.adetBarcode} right={`${x.quantity}`} />
-      ))}
+      <Text style={s.section}>Depo Stoğu</Text>
+      {(stock.data ?? []).length === 0 ? <Text style={s.dim}>Stok yok</Text> :
+        (stock.data ?? []).map((x: any) => (
+          <Row key={x.variantId} left={`${x.productName} ${x.color ?? ''}`.trim()} sub={x.adetBarcode} right={`${x.quantity}`} />
+        ))}
     </ScrollView>
   );
 }
