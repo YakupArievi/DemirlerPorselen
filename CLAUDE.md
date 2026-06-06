@@ -79,11 +79,9 @@ dotnet run --project src/Toptanci.Api
 
 - **Faz 0** — ✅ İskelet (0.1), ortak altyapı (0.2), auth (0.3)
 - **Faz 1** — ✅ Ürün & stok çekirdeği (varyant, barkod, depo, ledger, ürün girişi)
-- **Faz 3** — ✅ Kırık ürün, stok sayımı, depo transferi (dosya depolama soyutlaması)
 - **Faz 2** — ✅ Satış & cari (müşteri, cari ledger/ekstre, satış, ödeme, iptal/iade, fiyat geçmişi)
-- **Faz 2** — Satış & cari (müşteri, cari hesap, satış, ödeme, iptal/iade, fiyat geçmişi)
-- **Faz 3** — Kırık ürün, stok sayımı, depo transferi
-- **Faz 4** — Raporlama (dashboard, PDF)
+- **Faz 3** — ✅ Kırık ürün, stok sayımı, depo transferi (dosya depolama soyutlaması)
+- **Faz 4** — ✅ Raporlama (dashboard endpoint'leri, QuestPDF ile ekstre/müşteri/stok/karlılık PDF)
 - **Faz 5** — Frontend (React PWA)
 - **Faz 6** — Offline & senkronizasyon (en kritik)
 - **Faz 7** — Mobil (React Native)

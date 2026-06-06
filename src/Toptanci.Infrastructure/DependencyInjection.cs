@@ -47,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<ISequenceGenerator, SequenceGenerator>();
         services.AddScoped<IBarcodeGenerator, BarcodeGenerator>();
         services.AddSingleton<IFileStorage, Storage.LocalFileStorage>();
+        services.AddSingleton<IReportPdfService, Reporting.ReportPdfService>();
 
         return services;
     }

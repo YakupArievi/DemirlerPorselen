@@ -9,6 +9,8 @@ using Toptanci.Application.Features.Catalog.Variants;
 using Toptanci.Application.Features.Operations.Broken;
 using Toptanci.Application.Features.Operations.Counts;
 using Toptanci.Application.Features.Operations.Transfers;
+using Toptanci.Application.Features.Reporting.Dashboard;
+using Toptanci.Application.Features.Reporting.Reports;
 using Toptanci.Application.Features.Sales;
 using Toptanci.Application.Features.Sales.Accounts;
 using Toptanci.Application.Features.Sales.Customers;
@@ -56,6 +58,10 @@ public static class DependencyInjection
         services.AddScoped<IBrokenProductService, BrokenProductService>();
         services.AddScoped<IStockCountService, StockCountService>();
         services.AddScoped<IWarehouseTransferService, WarehouseTransferService>();
+
+        // Raporlama
+        services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IReportService, ReportService>();
 
         return services;
     }
