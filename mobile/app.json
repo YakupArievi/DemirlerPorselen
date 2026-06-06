@@ -15,6 +15,10 @@
     "ios": {
       "bundleIdentifier": "com.toptanci.musteri",
       "supportsTablet": true
-    }
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-font"
+    ]
   }
 }

@@ -2,10 +2,10 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Geliştirmede backend adresi:
-//  - Android emülatör -> http://10.0.2.2:5080
-//  - iOS simülatör   -> http://localhost:5080
-//  - Gerçek cihaz    -> http://<bilgisayar-LAN-IP>:5080
-export const API_BASE = 'http://10.0.2.2:5080/api';
+//  - Gerçek cihaz (aynı Wi-Fi) -> http://<bilgisayar-LAN-IP>:5080
+//  - Android emülatör          -> http://10.0.2.2:5080
+//  - iOS simülatör             -> http://localhost:5080
+export const API_BASE = 'http://192.168.1.205:5080/api';
 
 const ACCESS = 'portalAccess';
 const REFRESH = 'portalRefresh';
