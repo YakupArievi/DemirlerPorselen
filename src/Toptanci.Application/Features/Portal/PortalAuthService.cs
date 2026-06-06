@@ -23,11 +23,23 @@ public sealed class PortalLoginValidator : AbstractValidator<PortalLoginRequest>
     }
 }
 
+public sealed record ChangePortalPasswordRequest(string CurrentPassword, string NewPassword);
+
+public sealed class ChangePortalPasswordValidator : AbstractValidator<ChangePortalPasswordRequest>
+{
+    public ChangePortalPasswordValidator()
+    {
+        RuleFor(x => x.CurrentPassword).NotEmpty();
+        RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(4);
+    }
+}
+
 public interface IPortalAuthService
 {
     Task<Result<PortalAuthResponse>> LoginAsync(PortalLoginRequest request, CancellationToken ct = default);
     Task<Result<PortalAuthResponse>> RefreshAsync(string refreshToken, CancellationToken ct = default);
     Task<Result> LogoutAsync(string refreshToken, CancellationToken ct = default);
+    Task<Result> ChangePasswordAsync(Guid customerId, ChangePortalPasswordRequest request, CancellationToken ct = default);
 }
 
 public sealed class PortalAuthService : IPortalAuthService
@@ -85,6 +97,19 @@ public sealed class PortalAuthService : IPortalAuthService
             existing.RevokedAt = now;
             await _db.SaveChangesAsync(ct);
         }
+        return Result.Success();
+    }
+
+    public async Task<Result> ChangePasswordAsync(Guid customerId, ChangePortalPasswordRequest request, CancellationToken ct = default)
+    {
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId && c.PortalEnabled, ct);
+        if (customer is null || customer.PasswordHash is null)
+            return Result.Failure(Error.NotFound("Hesap bulunamadı."));
+        if (!_passwordHasher.Verify(request.CurrentPassword, customer.PasswordHash))
+            return Result.Failure(Error.Unauthorized("Mevcut parola hatalı."));
+
+        customer.PasswordHash = _passwordHasher.Hash(request.NewPassword);
+        await _db.SaveChangesAsync(ct);
         return Result.Success();
     }
 

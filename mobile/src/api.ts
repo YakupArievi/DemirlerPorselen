@@ -1,14 +1,15 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Geliştirmede backend adresi:
-//  - Gerçek cihaz (aynı Wi-Fi) -> http://<bilgisayar-LAN-IP>:5080
-//  - Android emülatör          -> http://10.0.2.2:5080
-//  - iOS simülatör             -> http://localhost:5080
+// Backend adresi (PC LAN IP — DHCP ile değişirse güncelle):
 export const API_BASE = 'http://192.168.1.17:5080/api';
 
-const ACCESS = 'portalAccess';
-const REFRESH = 'portalRefresh';
+export type Mode = 'staff' | 'portal';
+
+const MODE = 'mode';
+const ACCESS = 'access';
+const REFRESH = 'refresh';
+const USER = 'user';
 
 export const api = axios.create({ baseURL: API_BASE });
 
@@ -22,13 +23,15 @@ let refreshing: Promise<string | null> | null = null;
 
 async function doRefresh(): Promise<string | null> {
   const rt = await AsyncStorage.getItem(REFRESH);
-  if (!rt) return null;
+  const mode = (await AsyncStorage.getItem(MODE)) as Mode | null;
+  if (!rt || !mode) return null;
+  const endpoint = mode === 'staff' ? '/auth/refresh' : '/portal/auth/refresh';
   try {
-    const res = await axios.post(`${API_BASE}/portal/auth/refresh`, { refreshToken: rt });
+    const res = await axios.post(`${API_BASE}${endpoint}`, { refreshToken: rt });
     await AsyncStorage.multiSet([[ACCESS, res.data.accessToken], [REFRESH, res.data.refreshToken]]);
     return res.data.accessToken as string;
   } catch {
-    await AsyncStorage.multiRemove([ACCESS, REFRESH]);
+    await AsyncStorage.multiRemove([ACCESS, REFRESH, MODE, USER]);
     return null;
   }
 }
@@ -41,35 +44,56 @@ api.interceptors.response.use(
       original._retry = true;
       refreshing ??= doRefresh().finally(() => { refreshing = null; });
       const token = await refreshing;
-      if (token) {
-        original.headers.Authorization = `Bearer ${token}`;
-        return api(original);
-      }
+      if (token) { original.headers.Authorization = `Bearer ${token}`; return api(original); }
     }
     return Promise.reject(error);
   }
 );
 
-export async function portalLogin(phone: string, password: string) {
+export interface Session { mode: Mode; user: any; }
+
+export async function staffLogin(userName: string, password: string): Promise<Session> {
+  const res = await axios.post(`${API_BASE}/auth/login`, { userName, password });
+  await AsyncStorage.multiSet([
+    [MODE, 'staff'], [ACCESS, res.data.accessToken], [REFRESH, res.data.refreshToken],
+    [USER, JSON.stringify(res.data.user)],
+  ]);
+  return { mode: 'staff', user: res.data.user };
+}
+
+export async function portalLogin(phone: string, password: string): Promise<Session> {
   const res = await axios.post(`${API_BASE}/portal/auth/login`, { phone, password });
-  await AsyncStorage.multiSet([[ACCESS, res.data.accessToken], [REFRESH, res.data.refreshToken]]);
-  return res.data;
+  await AsyncStorage.multiSet([
+    [MODE, 'portal'], [ACCESS, res.data.accessToken], [REFRESH, res.data.refreshToken],
+    [USER, JSON.stringify(res.data.customer)],
+  ]);
+  return { mode: 'portal', user: res.data.customer };
 }
 
-export async function portalLogout() {
+export async function getSession(): Promise<Session | null> {
+  const mode = (await AsyncStorage.getItem(MODE)) as Mode | null;
+  const access = await AsyncStorage.getItem(ACCESS);
+  const userStr = await AsyncStorage.getItem(USER);
+  if (!mode || !access) return null;
+  return { mode, user: userStr ? JSON.parse(userStr) : null };
+}
+
+export async function logout() {
   const rt = await AsyncStorage.getItem(REFRESH);
+  const mode = (await AsyncStorage.getItem(MODE)) as Mode | null;
   const at = await AsyncStorage.getItem(ACCESS);
-  try {
-    if (rt) await axios.post(`${API_BASE}/portal/auth/logout`, { refreshToken: rt }, { headers: { Authorization: `Bearer ${at}` } });
-  } catch { /* yoksay */ }
-  await AsyncStorage.multiRemove([ACCESS, REFRESH]);
+  const endpoint = mode === 'staff' ? '/auth/logout' : '/portal/auth/logout';
+  try { if (rt) await axios.post(`${API_BASE}${endpoint}`, { refreshToken: rt }, { headers: { Authorization: `Bearer ${at}` } }); } catch { /* yoksay */ }
+  await AsyncStorage.multiRemove([ACCESS, REFRESH, MODE, USER]);
 }
 
-export async function hasSession() {
-  return !!(await AsyncStorage.getItem(ACCESS));
+export function apiError(e: any): string {
+  const d = e?.response?.data;
+  if (d?.errors) return Object.values(d.errors).flat().join(' ');
+  return d?.message ?? 'Bağlantı hatası. Sunucuya ulaşılamıyor olabilir.';
 }
 
-// Veri uçları (yalnızca giriş yapan müşteriye ait)
-export const getBalance = async () => (await api.get('/portal/me/balance')).data as number;
-export const getStatement = async () => (await api.get('/portal/me/statement')).data;
-export const getSales = async () => (await api.get('/portal/me/sales')).data;
+export async function getAccessToken() { return AsyncStorage.getItem(ACCESS); }
+
+export const tl = (v: number) => `${(v ?? 0).toFixed(2)} TL`;
+export const dateStr = (s: string) => new Date(s).toLocaleDateString('tr-TR');
