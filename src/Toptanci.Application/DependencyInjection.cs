@@ -69,6 +69,9 @@ public static class DependencyInjection
         // Mobil müşteri portalı (Faz 7)
         services.AddScoped<Features.Portal.IPortalAuthService, Features.Portal.PortalAuthService>();
 
+        // Kullanıcı (personel) yönetimi
+        services.AddScoped<Features.Admin.Users.IUserService, Features.Admin.Users.UserService>();
+
         return services;
     }
 }

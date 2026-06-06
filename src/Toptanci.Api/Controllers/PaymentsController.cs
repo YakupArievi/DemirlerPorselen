@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Toptanci.Api.Authorization;
 using Toptanci.Api.Extensions;
 using Toptanci.Application.Features.Sales.Payments;
 
 namespace Toptanci.Api.Controllers;
 
+[Authorize(Policy = Policies.PatronOrAdmin)] // Tahsilat/parasal -> Depocu erişemez
 public sealed class PaymentsController : ApiControllerBase
 {
     private readonly IPaymentService _service;

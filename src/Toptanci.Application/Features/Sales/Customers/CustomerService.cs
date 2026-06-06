@@ -5,8 +5,12 @@ using Toptanci.Domain.Entities;
 
 namespace Toptanci.Application.Features.Sales.Customers;
 
+public sealed record CustomerLookupDto(Guid Id, string Name);
+
 public interface ICustomerService
 {
+    /// <summary>Depocu satış ekranı için yalnızca id+ad (parasal bilgi YOK).</summary>
+    Task<IReadOnlyList<CustomerLookupDto>> GetLookupAsync(string? search, CancellationToken ct = default);
     Task<PagedResult<CustomerDto>> GetAllAsync(CustomerQuery query, CancellationToken ct = default);
     Task<Result<CustomerDto>> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<Result<CustomerDto>> CreateAsync(CreateCustomerRequest request, CancellationToken ct = default);
@@ -24,6 +28,15 @@ public sealed class CustomerService : ICustomerService
     {
         _db = db;
         _passwordHasher = passwordHasher;
+    }
+
+    public async Task<IReadOnlyList<CustomerLookupDto>> GetLookupAsync(string? search, CancellationToken ct = default)
+    {
+        var q = _db.Customers.AsNoTracking().Where(c => c.IsActive);
+        if (!string.IsNullOrWhiteSpace(search))
+            q = q.Where(c => c.Name.Contains(search));
+        return await q.OrderBy(c => c.Name).Take(100)
+            .Select(c => new CustomerLookupDto(c.Id, c.Name)).ToListAsync(ct);
     }
 
     public async Task<PagedResult<CustomerDto>> GetAllAsync(CustomerQuery query, CancellationToken ct = default)
