@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, SafeAreaView, Text, View } from 'react-native';
+import { Image, Pressable, SafeAreaView, Text, View } from 'react-native';
 import { apiError, portalLogin, staffLogin, type Session } from '../api';
 import { Btn, Field, colors, s } from '../ui';
 
@@ -22,7 +22,8 @@ export function Login({ onLogin }: { onLogin: (sess: Session) => void }) {
   return (
     <SafeAreaView style={s.fill}>
       <View style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
-        <Text style={{ fontSize: 34, fontWeight: 'bold', color: colors.text, textAlign: 'center' }}>Toptancı</Text>
+        <Image source={require('../../assets/icon.png')} style={{ width: 88, height: 88, borderRadius: 20, alignSelf: 'center', marginBottom: 14 }} />
+        <Text style={{ fontSize: 30, fontWeight: 'bold', color: colors.text, textAlign: 'center' }}>Demirler Porselen</Text>
         <Text style={{ color: colors.sub, textAlign: 'center', marginBottom: 24 }}>Stok & Cari</Text>
 
         <View style={{ flexDirection: 'row', backgroundColor: colors.card, borderRadius: 10, padding: 4, marginBottom: 18 }}>

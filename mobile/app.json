@@ -1,19 +1,26 @@
 {
   "expo": {
-    "name": "Toptancı Müşteri",
-    "slug": "toptanci-musteri",
+    "name": "Demirler Porselen",
+    "slug": "demirler-porselen",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "scheme": "toptancimusteri",
+    "scheme": "demirlerporselen",
+    "icon": "./assets/icon.png",
     "splash": {
-      "backgroundColor": "#0f172a"
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#14233b"
     },
     "android": {
-      "package": "com.toptanci.musteri"
+      "package": "com.demirler.porselen",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#14233b"
+      }
     },
     "ios": {
-      "bundleIdentifier": "com.toptanci.musteri",
+      "bundleIdentifier": "com.demirler.porselen",
       "supportsTablet": true
     },
     "plugins": [

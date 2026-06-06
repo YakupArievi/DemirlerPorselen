@@ -11,11 +11,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Toptancı Stok & Cari',
-        short_name: 'Toptancı',
-        description: 'Toptancı stok ve cari yönetim sistemi',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        name: 'Demirler Porselen',
+        short_name: 'Demirler',
+        description: 'Demirler Porselen — stok ve cari yönetim',
+        theme_color: '#14233b',
+        background_color: '#14233b',
         display: 'standalone',
         start_url: '/',
         icons: [
