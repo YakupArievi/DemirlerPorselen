@@ -30,6 +30,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 
     public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<CustomerRefreshToken> CustomerRefreshTokens => Set<CustomerRefreshToken>();
     public DbSet<AccountTransaction> AccountTransactions => Set<AccountTransaction>();
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleLine> SaleLines => Set<SaleLine>();

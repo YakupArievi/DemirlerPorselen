@@ -43,4 +43,10 @@ public sealed class CustomersController : ApiControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
         => (await _service.DeleteAsync(id, ct)).ToActionResult();
+
+    /// <summary>Müşteriye mobil portal giriş bilgisi atar (yalnızca Patron/Admin).</summary>
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Toptanci.Api.Authorization.Policies.PatronOrAdmin)]
+    [HttpPost("{id:guid}/portal")]
+    public async Task<IActionResult> SetPortal(Guid id, [FromBody] SetPortalCredentialsRequest request, CancellationToken ct)
+        => (await _service.SetPortalCredentialsAsync(id, request, ct)).ToActionResult();
 }

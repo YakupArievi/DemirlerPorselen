@@ -9,4 +9,7 @@ public static class AppRoles
     public const string Admin = nameof(Admin);
     public const string Patron = nameof(Patron);
     public const string Depocu = nameof(Depocu);
+
+    /// <summary>Mobil portal müşterisi (ayrı JWT şeması/audience ile izole).</summary>
+    public const string Customer = nameof(Customer);
 }

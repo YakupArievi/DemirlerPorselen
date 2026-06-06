@@ -11,4 +11,7 @@ public static class Policies
 
     /// <summary>Depo işlemleri: Depocu, Patron veya Admin.</summary>
     public const string WarehouseStaff = nameof(WarehouseStaff);
+
+    /// <summary>Mobil portal müşterisi ("Portal" şeması + Customer rolü).</summary>
+    public const string Portal = nameof(Portal);
 }

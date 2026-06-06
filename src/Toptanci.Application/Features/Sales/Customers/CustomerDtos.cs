@@ -26,6 +26,17 @@ public sealed record CustomerQuery : PageQuery
     public bool? OnlyWithBalance { get; set; }
 }
 
+/// <summary>Mobil portal giriş bilgisi atama. Phone boşsa mevcut telefon kullanılır.</summary>
+public sealed record SetPortalCredentialsRequest(string? Phone, string Password, bool Enabled);
+
+public sealed class SetPortalCredentialsValidator : AbstractValidator<SetPortalCredentialsRequest>
+{
+    public SetPortalCredentialsValidator()
+    {
+        RuleFor(x => x.Password).NotEmpty().MinimumLength(4).When(x => x.Enabled);
+    }
+}
+
 public sealed class CreateCustomerValidator : AbstractValidator<CreateCustomerRequest>
 {
     public CreateCustomerValidator()

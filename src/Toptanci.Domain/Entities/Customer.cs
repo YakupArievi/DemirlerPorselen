@@ -22,5 +22,13 @@ public class Customer : AuditableEntity
 
     public bool IsActive { get; set; } = true;
 
+    // --- Mobil müşteri portalı (Faz 7) ---
+    /// <summary>Portal girişi açık mı? Açıksa Phone + PasswordHash ile giriş yapılabilir.</summary>
+    public bool PortalEnabled { get; set; }
+
+    /// <summary>Portal parolası/PIN özeti (PBKDF2). Telefon kullanıcı adı olarak kullanılır.</summary>
+    public string? PasswordHash { get; set; }
+
     public ICollection<AccountTransaction> AccountTransactions { get; set; } = new List<AccountTransaction>();
+    public ICollection<CustomerRefreshToken> RefreshTokens { get; set; } = new List<CustomerRefreshToken>();
 }

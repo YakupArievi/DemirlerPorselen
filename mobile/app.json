@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Toptancı Müşteri",
+    "slug": "toptanci-musteri",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "toptancimusteri",
+    "splash": {
+      "backgroundColor": "#0f172a"
+    },
+    "android": {
+      "package": "com.toptanci.musteri"
+    },
+    "ios": {
+      "bundleIdentifier": "com.toptanci.musteri",
+      "supportsTablet": true
+    }
+  }
+}

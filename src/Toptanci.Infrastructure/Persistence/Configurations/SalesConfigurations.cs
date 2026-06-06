@@ -16,8 +16,27 @@ public sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.Notes).HasMaxLength(1000);
         builder.Property(c => c.OpeningBalance).HasPrecision(18, 2);
         builder.Property(c => c.Balance).HasPrecision(18, 2);
+        builder.Property(c => c.PasswordHash).HasMaxLength(256);
         builder.HasIndex(c => c.Name);
-        builder.HasIndex(c => c.Phone);
+        // Portal girişi açık müşteriler için telefon benzersiz olmalı (kullanıcı adı); arama için de indeks
+        builder.HasIndex(c => c.Phone).IsUnique().HasFilter("[PortalEnabled] = 1 AND [Phone] IS NOT NULL");
+
+        builder.HasMany(c => c.RefreshTokens)
+            .WithOne(rt => rt.Customer)
+            .HasForeignKey(rt => rt.CustomerId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public sealed class CustomerRefreshTokenConfiguration : IEntityTypeConfiguration<CustomerRefreshToken>
+{
+    public void Configure(EntityTypeBuilder<CustomerRefreshToken> builder)
+    {
+        builder.ToTable("CustomerRefreshTokens");
+        builder.Property(rt => rt.Token).IsRequired().HasMaxLength(256);
+        builder.Property(rt => rt.ReplacedByToken).HasMaxLength(256);
+        builder.HasIndex(rt => rt.Token).IsUnique();
+        builder.HasIndex(rt => rt.CustomerId);
     }
 }
 

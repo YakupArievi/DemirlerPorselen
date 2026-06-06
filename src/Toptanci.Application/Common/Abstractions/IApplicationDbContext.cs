@@ -21,6 +21,7 @@ public interface IApplicationDbContext
     DbSet<StockMovement> StockMovements { get; }
 
     DbSet<Customer> Customers { get; }
+    DbSet<CustomerRefreshToken> CustomerRefreshTokens { get; }
     DbSet<AccountTransaction> AccountTransactions { get; }
     DbSet<Sale> Sales { get; }
     DbSet<SaleLine> SaleLines { get; }

@@ -84,7 +84,7 @@ dotnet run --project src/Toptanci.Api
 - **Faz 4** — ✅ Raporlama (dashboard endpoint'leri, QuestPDF ile ekstre/müşteri/stok/karlılık PDF)
 - **Faz 5** — ✅ Frontend (React PWA: panel, ürün, satış, cari, stok)
 - **Faz 6** — ✅ Offline & senkronizasyon (Dexie cache + kuyruk + senkron motoru + PWA)
-- **Faz 7** — ✅ Mobil iskelet (Expo/React Native, `mobile/` — gelecek faz)
+- **Faz 7** — ✅ Mobil müşteri portalı (Expo/React Native, `mobile/`): telefon+parola giriş, borç/ekstre/aldıklarım. Backend: ayrı JWT şeması (`Portal` audience) + `/api/portal/auth/*` & `/api/portal/me/*`; müşteri token'ı personel uçlarına erişemez. Personel `POST /api/customers/{id}/portal` ile kimlik tanımlar.
 - **Faz 8** — ✅ Yapay zeka v1 (hareketli ortalama sipariş önerisi/erken uyarı, `docs/faz8-yapay-zeka.md`)
 
 ## Çalıştırma (tam yığın)

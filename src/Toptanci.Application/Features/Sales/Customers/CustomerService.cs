@@ -12,13 +12,19 @@ public interface ICustomerService
     Task<Result<CustomerDto>> CreateAsync(CreateCustomerRequest request, CancellationToken ct = default);
     Task<Result<CustomerDto>> UpdateAsync(Guid id, UpdateCustomerRequest request, CancellationToken ct = default);
     Task<Result> DeleteAsync(Guid id, CancellationToken ct = default);
+    Task<Result> SetPortalCredentialsAsync(Guid id, SetPortalCredentialsRequest request, CancellationToken ct = default);
 }
 
 public sealed class CustomerService : ICustomerService
 {
     private readonly IApplicationDbContext _db;
+    private readonly IPasswordHasher _passwordHasher;
 
-    public CustomerService(IApplicationDbContext db) => _db = db;
+    public CustomerService(IApplicationDbContext db, IPasswordHasher passwordHasher)
+    {
+        _db = db;
+        _passwordHasher = passwordHasher;
+    }
 
     public async Task<PagedResult<CustomerDto>> GetAllAsync(CustomerQuery query, CancellationToken ct = default)
     {
@@ -105,6 +111,36 @@ public sealed class CustomerService : ICustomerService
             return Result.Failure(Error.Conflict("Müşterinin satış geçmişi var, silinemez. Pasif yapabilirsiniz."));
 
         _db.Customers.Remove(entity);
+        await _db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> SetPortalCredentialsAsync(Guid id, SetPortalCredentialsRequest request, CancellationToken ct = default)
+    {
+        var entity = await _db.Customers.FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (entity is null)
+            return Result.Failure(Error.NotFound("Müşteri bulunamadı."));
+
+        if (!request.Enabled)
+        {
+            entity.PortalEnabled = false;
+            entity.PasswordHash = null;
+            await _db.SaveChangesAsync(ct);
+            return Result.Success();
+        }
+
+        var phone = string.IsNullOrWhiteSpace(request.Phone) ? entity.Phone : request.Phone.Trim();
+        if (string.IsNullOrWhiteSpace(phone))
+            return Result.Failure(Error.Validation("Portal girişi için telefon gerekli."));
+
+        // Aynı telefonla portal açık başka müşteri olmamalı
+        var clash = await _db.Customers.AnyAsync(c => c.Id != id && c.PortalEnabled && c.Phone == phone, ct);
+        if (clash)
+            return Result.Failure(Error.Conflict("Bu telefon başka bir portal hesabında kullanılıyor."));
+
+        entity.Phone = phone;
+        entity.PortalEnabled = true;
+        entity.PasswordHash = _passwordHasher.Hash(request.Password);
         await _db.SaveChangesAsync(ct);
         return Result.Success();
     }

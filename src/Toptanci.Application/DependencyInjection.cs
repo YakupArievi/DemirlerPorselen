@@ -66,6 +66,9 @@ public static class DependencyInjection
         // Tahmin (Faz 8)
         services.AddScoped<Features.Forecasting.IForecastService, Features.Forecasting.ForecastService>();
 
+        // Mobil müşteri portalı (Faz 7)
+        services.AddScoped<Features.Portal.IPortalAuthService, Features.Portal.PortalAuthService>();
+
         return services;
     }
 }

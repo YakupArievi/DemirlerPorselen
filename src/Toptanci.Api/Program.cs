@@ -55,6 +55,24 @@ builder.Services
             NameClaimType = ClaimTypes.Name,
             RoleClaimType = ClaimTypes.Role
         };
+    })
+    // Mobil müşteri portalı için ayrı şema: farklı audience -> personel uçlarına erişemez
+    .AddJwtBearer("Portal", options =>
+    {
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtSettings.PortalAudience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromSeconds(30),
+            NameClaimType = ClaimTypes.Name,
+            RoleClaimType = ClaimTypes.Role
+        };
     });
 
 builder.Services.AddAuthorization(options =>
@@ -62,6 +80,12 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(Policies.AdminOnly, p => p.RequireRole(AppRoles.Admin));
     options.AddPolicy(Policies.PatronOrAdmin, p => p.RequireRole(AppRoles.Patron, AppRoles.Admin));
     options.AddPolicy(Policies.WarehouseStaff, p => p.RequireRole(AppRoles.Depocu, AppRoles.Patron, AppRoles.Admin));
+    // Portal: yalnızca "Portal" şemasıyla doğrulanmış Customer rolü
+    options.AddPolicy(Policies.Portal, p =>
+    {
+        p.AuthenticationSchemes.Add("Portal");
+        p.RequireRole(AppRoles.Customer);
+    });
 });
 
 // Web API

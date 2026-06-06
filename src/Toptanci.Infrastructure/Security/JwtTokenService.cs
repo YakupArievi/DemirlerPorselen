@@ -54,4 +54,32 @@ public sealed class JwtTokenService : ITokenService
         var expires = _timeProvider.GetUtcNow().UtcDateTime.AddDays(_settings.RefreshTokenDays);
         return new TokenResult(token, expires);
     }
+
+    public TokenResult GenerateCustomerAccessToken(Customer customer)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var expires = now.AddMinutes(_settings.PortalAccessTokenMinutes);
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, customer.Id.ToString()),
+            new(ClaimTypes.Name, customer.Name),
+            new(ClaimTypes.Role, "Customer"),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.SecretKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        // Ayrı audience -> personel JWT şeması bu token'ı reddeder (izolasyon)
+        var token = new JwtSecurityToken(
+            issuer: _settings.Issuer,
+            audience: _settings.PortalAudience,
+            claims: claims,
+            notBefore: now,
+            expires: expires,
+            signingCredentials: credentials);
+
+        return new TokenResult(new JwtSecurityTokenHandler().WriteToken(token), expires);
+    }
 }
