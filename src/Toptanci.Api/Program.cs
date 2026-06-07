@@ -16,6 +16,16 @@ using Toptanci.Infrastructure.Security;
 
     var builder = WebApplication.CreateBuilder(args);
 
+// Geliştirmede tüm ağ arayüzlerini (0.0.0.0) dinle ki aynı Wi-Fi'daki telefon/diğer
+// cihazlar da http://<PC-IP>:5080 ile erişebilsin. (localhost yalnızca bu makineden erişilir.)
+// ListenAnyIP kullanıyoruz çünkü ConfigureKestrel, launchSettings'teki applicationUrl'ü
+// (ve dolayısıyla VS'in localhost'a bağlama davranışını) override eder. Port: Api:Port (vars. 5080).
+if (builder.Environment.IsDevelopment())
+{
+    var port = int.TryParse(builder.Configuration["Api:Port"], out var p) ? p : 5080;
+    builder.WebHost.ConfigureKestrel(options => options.ListenAnyIP(port));
+}
+
 // Serilog
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
@@ -113,7 +123,11 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSerilogRequestLogging();
 app.UseStaticFiles();
-app.UseHttpsRedirection();
+// Geliştirmede telefon http üzerinden bağlanır; https yönlendirmesi yapma (yoksa istekler kırılır).
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

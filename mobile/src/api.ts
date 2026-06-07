@@ -1,8 +1,26 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-// Backend adresi (PC LAN IP — DHCP ile değişirse güncelle):
-export const API_BASE = 'http://192.168.1.17:5080/api';
+// Backend portu (Program.cs ile aynı olmalı).
+const API_PORT = 5080;
+
+// Backend adresini otomatik bul: telefon Expo/Metro'ya zaten PC'nin LAN IP'si üzerinden
+// bağlanıyor; aynı IP'yi backend için de kullanıyoruz. Böylece DHCP ile IP değişse bile
+// elle düzeltmeye gerek kalmaz. (Expo Go / dev derlemesinde çalışır.)
+function resolveApiHost(): string {
+  const hostUri =
+    Constants.expoConfig?.hostUri ||
+    (Constants as any).expoGoConfig?.debuggerHost ||
+    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ||
+    (Constants as any).manifest?.debuggerHost ||
+    '';
+  const host = String(hostUri).split(':')[0];
+  // Yedek: otomatik bulunamazsa buraya PC'nin IP'sini yaz.
+  return host || '192.168.1.17';
+}
+
+export const API_BASE = `http://${resolveApiHost()}:${API_PORT}/api`;
 
 export type Mode = 'staff' | 'portal';
 

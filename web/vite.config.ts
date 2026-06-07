@@ -31,6 +31,7 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
+    host: true, // LAN'a aç: telefon/diğer cihazlar da http://<PC-IP>:5173 ile erişebilir
     proxy: {
       '/api': { target: 'http://localhost:5080', changeOrigin: true },
       '/uploads': { target: 'http://localhost:5080', changeOrigin: true },
