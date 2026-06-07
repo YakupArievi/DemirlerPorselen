@@ -1,11 +1,17 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { authStore } from '../store/auth';
 
-export const api = axios.create({ baseURL: '/api' });
+// Dev'de '/api' (vite proxy -> 5080). Yayında VITE_API_URL ile ngrok/bulut backend adresi verilir,
+// ör: VITE_API_URL=https://demirler.ngrok-free.app/api
+export const API_BASE = import.meta.env.VITE_API_URL ?? '/api';
+
+export const api = axios.create({ baseURL: API_BASE });
 
 api.interceptors.request.use((config) => {
   const token = authStore.getState().accessToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  // ngrok ücretsiz katmanındaki tarayıcı uyarı sayfasını atla
+  config.headers['ngrok-skip-browser-warning'] = 'true';
   return config;
 });
 
@@ -16,7 +22,8 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refreshToken) return null;
   try {
     // Interceptor'sız ham çağrı (sonsuz döngüyü önle)
-    const res = await axios.post('/api/auth/refresh', { refreshToken });
+    const res = await axios.post(`${API_BASE}/auth/refresh`, { refreshToken },
+      { headers: { 'ngrok-skip-browser-warning': 'true' } });
     setTokens(res.data.accessToken, res.data.refreshToken);
     return res.data.accessToken as string;
   } catch {

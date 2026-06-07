@@ -26,7 +26,10 @@
       "PowerShell(wsl -e bash -lc \"whoami; echo '---'; uname -a; echo '---'; cat /etc/os-release | head -3; echo '--- sudo ---'; sudo -n true 2>&1 && echo 'passwordless-sudo-OK' || echo 'sudo-needs-password'; echo '--- dotnet ---'; which dotnet || echo 'no-dotnet'; echo '--- mem ---'; free -h | head -2\")",
       "PowerShell(Get-WindowsOptionalFeature *)",
       "PowerShell(wsl -l -v 2>&1)",
-      "PowerShell(wsl -u root -e bash -lc \"whoami; cat /etc/os-release | grep -E '^\\(NAME|VERSION\\)='; echo '--- arch/mem ---'; uname -m; free -h | head -2; echo '--- dotnet ---'; \\(which dotnet && dotnet --version\\) || echo 'no-dotnet'; echo '--- net ---'; cat /etc/resolv.conf 2>/dev/null | head -1; echo '--- internet ---'; \\(curl -sI https://packages.microsoft.com 2>/dev/null | head -1\\) || echo 'curl-yok-veya-net-yok'\")"
+      "PowerShell(wsl -u root -e bash -lc \"whoami; cat /etc/os-release | grep -E '^\\(NAME|VERSION\\)='; echo '--- arch/mem ---'; uname -m; free -h | head -2; echo '--- dotnet ---'; \\(which dotnet && dotnet --version\\) || echo 'no-dotnet'; echo '--- net ---'; cat /etc/resolv.conf 2>/dev/null | head -1; echo '--- internet ---'; \\(curl -sI https://packages.microsoft.com 2>/dev/null | head -1\\) || echo 'curl-yok-veya-net-yok'\")",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'web: npm start takma adi ekle \\(vite\\) *)",
+      "Bash(npx tsc *)"
     ]
   }
 }

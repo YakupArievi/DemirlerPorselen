@@ -5,22 +5,25 @@ import Constants from 'expo-constants';
 // Backend portu (Program.cs ile aynı olmalı).
 const API_PORT = 5080;
 
-// Backend adresini otomatik bul: telefon Expo/Metro'ya zaten PC'nin LAN IP'si üzerinden
-// bağlanıyor; aynı IP'yi backend için de kullanıyoruz. Böylece DHCP ile IP değişse bile
-// elle düzeltmeye gerek kalmaz. (Expo Go / dev derlemesinde çalışır.)
-function resolveApiHost(): string {
+// Backend adresini çöz:
+// 1) app.json extra.apiUrl doluysa (APK/yayın derlemesi) onu kullan — sabit tünel/bulut adresi.
+// 2) Aksi halde dev: telefon Expo/Metro'ya PC'nin LAN IP'si üzerinden bağlanıyor; aynı IP'yi
+//    backend için de kullan. Böylece DHCP ile IP değişse bile elle düzeltme gerekmez.
+function resolveApiBase(): string {
+  const configured = (Constants.expoConfig?.extra as any)?.apiUrl as string | undefined;
+  if (configured) return configured.replace(/\/$/, '');
+
   const hostUri =
     Constants.expoConfig?.hostUri ||
     (Constants as any).expoGoConfig?.debuggerHost ||
     (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ||
     (Constants as any).manifest?.debuggerHost ||
     '';
-  const host = String(hostUri).split(':')[0];
-  // Yedek: otomatik bulunamazsa buraya PC'nin IP'sini yaz.
-  return host || '192.168.1.17';
+  const host = String(hostUri).split(':')[0] || '192.168.1.17'; // yedek: PC IP
+  return `http://${host}:${API_PORT}/api`;
 }
 
-export const API_BASE = `http://${resolveApiHost()}:${API_PORT}/api`;
+export const API_BASE = resolveApiBase();
 
 export type Mode = 'staff' | 'portal';
 
@@ -29,11 +32,15 @@ const ACCESS = 'access';
 const REFRESH = 'refresh';
 const USER = 'user';
 
+// ngrok ücretsiz katmanı tarayıcı uyarı sayfası döndürebilir; tüm axios çağrılarında atla.
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
+
 export const api = axios.create({ baseURL: API_BASE });
 
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem(ACCESS);
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  config.headers['ngrok-skip-browser-warning'] = 'true'; // ngrok uyarı sayfasını atla
   return config;
 });
 

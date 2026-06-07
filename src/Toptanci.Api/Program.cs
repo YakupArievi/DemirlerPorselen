@@ -105,6 +105,11 @@ builder.Services
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddOpenApi();
 
+// CORS: web/mobil farklı bir kökenden (Vercel, ngrok, LAN IP) backend'i çağırabilsin.
+// Kimlik Bearer token ile taşındığı için cookie/credential gerekmez; AllowAnyOrigin güvenli.
+builder.Services.AddCors(options =>
+    options.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+
 var app = builder.Build();
 
 // Migration + seed (varsayılan admin)
@@ -122,6 +127,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSerilogRequestLogging();
+app.UseCors();
 app.UseStaticFiles();
 // Geliştirmede telefon http üzerinden bağlanır; https yönlendirmesi yapma (yoksa istekler kırılır).
 if (!app.Environment.IsDevelopment())
