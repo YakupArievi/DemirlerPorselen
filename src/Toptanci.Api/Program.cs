@@ -134,6 +134,10 @@ app.UseStaticFiles();
 // kenarda sonlandırılır ve uygulamaya http iletilir (redirect döngüsünü önlemek için kapalı).
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Sağlık kontrolü (Render/uptime izleme): kimlik gerektirmez, DB'ye dokunmaz, hep 200 döner.
+app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
+
 app.MapControllers();
 
 app.Run();
