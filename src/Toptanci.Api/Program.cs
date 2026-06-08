@@ -113,12 +113,22 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Migration + seed (varsayılan admin)
+// Migration + seed (varsayılan admin). DB başlatma hatasında uygulamayı çökertme;
+// hatayı sakla ve /healthz üzerinden göster (uzaktan teşhis için).
+string? dbInitError = null;
 using (var scope = app.Services.CreateScope())
 {
-    var initializer = scope.ServiceProvider.GetRequiredService<ApplicationDbContextInitializer>();
-    await initializer.InitializeAsync();
-    await initializer.SeedAsync();
+    try
+    {
+        var initializer = scope.ServiceProvider.GetRequiredService<ApplicationDbContextInitializer>();
+        await initializer.InitializeAsync();
+        await initializer.SeedAsync();
+    }
+    catch (Exception ex)
+    {
+        dbInitError = $"{ex.GetType().Name}: {ex.Message}";
+        Log.Error(ex, "Veritabanı başlatma (migration/seed) başarısız");
+    }
 }
 
 if (app.Environment.IsDevelopment())
@@ -135,8 +145,9 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Sağlık kontrolü (Render/uptime izleme): kimlik gerektirmez, DB'ye dokunmaz, hep 200 döner.
-app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
+// Sağlık kontrolü (Render/uptime izleme): kimlik gerektirmez. DB başlatma hatası varsa
+// teşhis için mesajını döner (yoksa "ok").
+app.MapGet("/healthz", () => Results.Ok(new { status = dbInitError is null ? "ok" : "db-error", db = dbInitError }));
 
 app.MapControllers();
 

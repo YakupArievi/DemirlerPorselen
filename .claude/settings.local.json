@@ -29,7 +29,13 @@
       "PowerShell(wsl -u root -e bash -lc \"whoami; cat /etc/os-release | grep -E '^\\(NAME|VERSION\\)='; echo '--- arch/mem ---'; uname -m; free -h | head -2; echo '--- dotnet ---'; \\(which dotnet && dotnet --version\\) || echo 'no-dotnet'; echo '--- net ---'; cat /etc/resolv.conf 2>/dev/null | head -1; echo '--- internet ---'; \\(curl -sI https://packages.microsoft.com 2>/dev/null | head -1\\) || echo 'curl-yok-veya-net-yok'\")",
       "Bash(git add *)",
       "Bash(git commit -q -m 'web: npm start takma adi ekle \\(vite\\) *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(PGPASSWORD='Yakup_Arievi' psql -h aws-0-eu-west-1.pooler.supabase.com -p 5432 -d postgres -U postgres.egorprduytqguvjfuuov -c \"select 'BAGLANTI OK' as sonuc;\")",
+      "Bash(curl -s --max-time 60 -o /dev/null -w 'HTTP %{http_code} \\(%{time_total}s\\)\\\\n' https://demirlerporselen.onrender.com/healthz)",
+      "Bash(curl -s --max-time 60 -X POST https://demirlerporselen.onrender.com/api/auth/login -H 'Content-Type: application/json' -d '{\"userName\":\"admin\",\"password\":\"Admin123!\"}' -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Bash(dotnet build *)",
+      "Bash(git commit -q -m 'API: DB init hatasinda cokme; healthz'\\\\''de hatayi goster \\(uzaktan teshis\\) *)",
+      "Bash(git push *)"
     ]
   }
 }
