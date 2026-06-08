@@ -16,13 +16,14 @@ using Toptanci.Infrastructure.Security;
 
     var builder = WebApplication.CreateBuilder(args);
 
-// Geliştirmede tüm ağ arayüzlerini (0.0.0.0) dinle ki aynı Wi-Fi'daki telefon/diğer
-// cihazlar da http://<PC-IP>:5080 ile erişebilsin. (localhost yalnızca bu makineden erişilir.)
-// ListenAnyIP kullanıyoruz çünkü ConfigureKestrel, launchSettings'teki applicationUrl'ü
-// (ve dolayısıyla VS'in localhost'a bağlama davranışını) override eder. Port: Api:Port (vars. 5080).
-if (builder.Environment.IsDevelopment())
+// Dinlenecek port + adres. ListenAnyIP => 0.0.0.0: hem aynı Wi-Fi'daki telefon hem de
+// bulut proxy'si (Render vb.) erişebilir. Öncelik: bulutun verdiği PORT env -> Api:Port -> 5080.
+// ConfigureKestrel kullanıyoruz çünkü launchSettings'teki applicationUrl'ü (VS'in localhost'a
+// bağlama davranışını) override eder.
 {
-    var port = int.TryParse(builder.Configuration["Api:Port"], out var p) ? p : 5080;
+    var portStr = Environment.GetEnvironmentVariable("PORT")
+        ?? builder.Configuration["Api:Port"] ?? "5080";
+    var port = int.TryParse(portStr, out var p) ? p : 5080;
     builder.WebHost.ConfigureKestrel(options => options.ListenAnyIP(port));
 }
 
@@ -129,11 +130,8 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSerilogRequestLogging();
 app.UseCors();
 app.UseStaticFiles();
-// Geliştirmede telefon http üzerinden bağlanır; https yönlendirmesi yapma (yoksa istekler kırılır).
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+// HTTPS yönlendirmesi yok: dev'de telefon http ile bağlanır; bulutta (Render/Vercel) TLS zaten
+// kenarda sonlandırılır ve uygulamaya http iletilir (redirect döngüsünü önlemek için kapalı).
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

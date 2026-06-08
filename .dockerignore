@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/node_modules/
+web/
+mobile/
+brand/
+docs/
+logs/
+.git/
+.vs/
+*.user
