@@ -145,9 +145,20 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Sağlık kontrolü (Render/uptime izleme): kimlik gerektirmez. DB başlatma hatası varsa
-// teşhis için mesajını döner (yoksa "ok").
-app.MapGet("/healthz", () => Results.Ok(new { status = dbInitError is null ? "ok" : "db-error", db = dbInitError }));
+// Sağlık kontrolü (Render/uptime izleme): kimlik gerektirmez. Anlık DB bağlantısını dener;
+// bu uç düzenli pinglenince Supabase de uyumaz (keep-alive). startupError = başlangıçtaki durum.
+app.MapGet("/healthz", async (ApplicationDbContext db) =>
+{
+    try
+    {
+        var ok = await db.Database.CanConnectAsync();
+        return Results.Ok(new { status = ok ? "ok" : "db-unreachable", startupError = dbInitError });
+    }
+    catch (Exception ex)
+    {
+        return Results.Ok(new { status = "db-error", db = ex.Message, startupError = dbInitError });
+    }
+});
 
 app.MapControllers();
 
