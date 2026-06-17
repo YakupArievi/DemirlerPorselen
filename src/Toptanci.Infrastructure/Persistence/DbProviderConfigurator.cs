@@ -41,9 +41,12 @@ public static class DbProviderConfigurator
     {
         if (string.IsNullOrWhiteSpace(cs)) return cs;
         cs = cs.Trim();
-        const string accidentalPrefix = "ConnectionStrings__DefaultConnection=";
-        if (cs.StartsWith(accidentalPrefix, StringComparison.OrdinalIgnoreCase))
-            cs = cs[accidentalPrefix.Length..].Trim();
+        // Postgres dizesi mutlaka "Host=" içerir. VALUE kutusuna yanlışlıkla
+        // "ConnectionStrings__DefaultConnection value: Host=..." gibi bir önekle yapıştırma
+        // sık görülür; "Host="ten öncesindeki her şeyi at.
+        var hostIdx = cs.IndexOf("Host=", StringComparison.OrdinalIgnoreCase);
+        if (hostIdx > 0)
+            cs = cs[hostIdx..].Trim();
         return cs;
     }
 }
