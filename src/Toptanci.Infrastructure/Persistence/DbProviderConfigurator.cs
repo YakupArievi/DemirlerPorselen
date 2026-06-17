@@ -21,6 +21,7 @@ public static class DbProviderConfigurator
 
     public static void Configure(DbContextOptionsBuilder options, string? provider, string? connectionString)
     {
+        connectionString = SanitizeConnectionString(connectionString);
         if (Normalize(provider) == Postgres)
         {
             options.UseNpgsql(connectionString, npgsql => npgsql.MigrationsAssembly(PostgresMigrationsAssembly));
@@ -29,5 +30,20 @@ public static class DbProviderConfigurator
         {
             options.UseSqlServer(connectionString, sql => sql.MigrationsAssembly(SqlServerMigrationsAssembly));
         }
+    }
+
+    /// <summary>
+    /// Bulut panellerinde (Render/Vercel) VALUE kutusuna yanlışlıkla "Ad=deger" şeklinde,
+    /// değişken adı önekiyle yapıştırma sık görülür. Bağlantı dizesi başına böyle bir önek
+    /// yapışmışsa temizle ki kurulum hatası deploy'u kırmasın.
+    /// </summary>
+    private static string? SanitizeConnectionString(string? cs)
+    {
+        if (string.IsNullOrWhiteSpace(cs)) return cs;
+        cs = cs.Trim();
+        const string accidentalPrefix = "ConnectionStrings__DefaultConnection=";
+        if (cs.StartsWith(accidentalPrefix, StringComparison.OrdinalIgnoreCase))
+            cs = cs[accidentalPrefix.Length..].Trim();
+        return cs;
     }
 }

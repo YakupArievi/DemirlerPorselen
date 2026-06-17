@@ -35,7 +35,10 @@
       "Bash(curl -s --max-time 60 -X POST https://demirlerporselen.onrender.com/api/auth/login -H 'Content-Type: application/json' -d '{\"userName\":\"admin\",\"password\":\"Admin123!\"}' -w '\\\\nHTTP %{http_code}\\\\n')",
       "Bash(dotnet build *)",
       "Bash(git commit -q -m 'API: DB init hatasinda cokme; healthz'\\\\''de hatayi goster \\(uzaktan teshis\\) *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(curl -s --max-time 70 https://demirlerporselen.onrender.com/healthz -w '\\\\nHTTP %{http_code} \\(%{time_total}s\\)\\\\n')",
+      "Bash(curl -s --max-time 70 https://demirlerporselen-1.onrender.com/healthz -w \"\\\\nHTTP %{http_code}\\\\n\")",
+      "Bash(curl -s --max-time 40 https://demirlerporselen.onrender.com/healthz -w \"\\\\nHTTP %{http_code}\\\\n\")"
     ]
   }
 }
