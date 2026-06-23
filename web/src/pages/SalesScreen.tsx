@@ -34,6 +34,27 @@ export function SalesScreen() {
     onError: (e) => setMsg({ kind: 'err', text: apiErrorMessage(e) }),
   });
 
+  // Düzenle: satış doğrudan değiştirilemez (storno). Mevcut satışı iptal edip kalemlerini
+  // sepete yükleriz; kullanıcı düzeltip yeniden tamamlar.
+  const editSale = async (s: SaleListItem) => {
+    if (!confirm(`#${s.saleNumber} düzenlenecek: mevcut satış iptal edilip kalemleri sepete yüklenir. Devam?`)) return;
+    setMsg(null);
+    try {
+      const full = (await api.get<Sale>(`/sales/${s.id}`)).data;
+      await api.post(`/sales/${s.id}/cancel`);
+      qc.invalidateQueries({ queryKey: ['recent-sales'] });
+      setCustomerId(full.customerId);
+      setWarehouseId(full.warehouseId);
+      setCart(full.lines.map((l) => ({
+        key: crypto.randomUUID(), variantId: l.variantId,
+        name: `${l.productName} (${l.unitType})`,
+        unitType: l.unitType, quantity: l.quantity, unitPrice: l.unitPrice, lineDiscount: l.lineDiscount,
+      })));
+      setMsg({ kind: 'ok', text: `#${s.saleNumber} iptal edildi ve sepete yüklendi. Düzeltip "Satışı Tamamla"ya basın.` });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) { setMsg({ kind: 'err', text: apiErrorMessage(e) }); }
+  };
+
   const [customerId, setCustomerId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [barcode, setBarcode] = useState('');
@@ -238,6 +259,7 @@ export function SalesScreen() {
                 <td className="p-2 text-right">
                   {s.status === 'Active' && (
                     <RowActions actions={[
+                      { label: 'Düzenle', onClick: () => editSale(s) },
                       { label: 'İptal et', danger: true, onClick: () => { if (confirm(`#${s.saleNumber} satışı iptal edilsin mi? Stok ve cari geri alınır.`)) cancelSale.mutate(s.id); } },
                     ]} />
                   )}
