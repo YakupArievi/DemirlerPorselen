@@ -80,6 +80,8 @@ function ProductModal({ categories, brands, onClose, onSaved, onCategoryAdded }:
   const [name, setName] = useState('');
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '');
   const [brandId, setBrandId] = useState('');
+  const [salePrice, setSalePrice] = useState(0);
+  const [purchasePrice, setPurchasePrice] = useState(0);
   const [newCat, setNewCat] = useState('');
   const [error, setError] = useState('');
 
@@ -88,8 +90,12 @@ function ProductModal({ categories, brands, onClose, onSaved, onCategoryAdded }:
     onSuccess: (c) => { setNewCat(''); setCategoryId(c.id); onCategoryAdded(); },
   });
 
+  // Ürünü oluştur + aynı anda varyantını oluştur (kullanıcı ayrıca "Varyantlar"a tıklamak zorunda değil).
   const save = useMutation({
-    mutationFn: async () => api.post('/products', { name, categoryId, brandId: brandId || null }),
+    mutationFn: async () => {
+      const p = (await api.post('/products', { name, categoryId, brandId: brandId || null })).data as { id: string };
+      await api.post('/variants', { productId: p.id, koliIciAdet: 1, purchasePrice, salePrice, minStock: 0 });
+    },
     onSuccess: onSaved,
     onError: (e) => setError(apiErrorMessage(e)),
   });
@@ -116,9 +122,17 @@ function ProductModal({ categories, brands, onClose, onSaved, onCategoryAdded }:
           {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
       </Field>
+      <Field label="Satış fiyatı">
+        <input className={inputCls} type="number" value={salePrice === 0 ? '' : salePrice}
+          onChange={(e) => setSalePrice(e.target.value === '' ? 0 : +e.target.value)} />
+      </Field>
+      <Field label="Alış fiyatı (ops.)">
+        <input className={inputCls} type="number" value={purchasePrice === 0 ? '' : purchasePrice}
+          onChange={(e) => setPurchasePrice(e.target.value === '' ? 0 : +e.target.value)} />
+      </Field>
       <div className="flex justify-end gap-2">
         <button className={btnGhost} onClick={onClose}>İptal</button>
-        <button className={btnPrimary} disabled={!name || !categoryId || save.isPending} onClick={() => save.mutate()}>Kaydet</button>
+        <button className={btnPrimary} disabled={!name || !categoryId || !(salePrice > 0) || save.isPending} onClick={() => save.mutate()}>Kaydet</button>
       </div>
     </Modal>
   );
@@ -129,11 +143,11 @@ function VariantPanel({ productId, onChanged }: { productId: string; onChanged: 
     queryKey: ['variants', productId],
     queryFn: async () => (await api.get<Variant[]>(`/products/${productId}/variants`)).data,
   });
-  const [form, setForm] = useState({ koliIciAdet: 1, purchasePrice: 0, salePrice: 0 });
+  const [form, setForm] = useState({ purchasePrice: 0, salePrice: 0 });
   const [qr, setQr] = useState<Variant | null>(null);
   const add = useMutation({
-    mutationFn: async () => api.post('/variants', { productId, minStock: 0, ...form }),
-    onSuccess: () => { variants.refetch(); onChanged(); setForm({ koliIciAdet: 1, purchasePrice: 0, salePrice: 0 }); },
+    mutationFn: async () => api.post('/variants', { productId, koliIciAdet: 1, minStock: 0, ...form }),
+    onSuccess: () => { variants.refetch(); onChanged(); setForm({ purchasePrice: 0, salePrice: 0 }); },
   });
 
   const ic = 'flex-1 rounded border border-slate-300 px-3 py-2';
@@ -166,10 +180,9 @@ function VariantPanel({ productId, onChanged }: { productId: string; onChanged: 
       </table>
       {qr && <QrLabelModal variant={qr} onClose={() => setQr(null)} />}
       <div className="max-w-sm space-y-2">
-        {row('Koli içi adet', <input className={ic} type="number" value={form.koliIciAdet} onChange={(e) => setForm({ ...form, koliIciAdet: +e.target.value })} />)}
-        {row('Alış fiyatı', <input className={ic} type="number" value={form.purchasePrice} onChange={(e) => setForm({ ...form, purchasePrice: +e.target.value })} />)}
-        {row('Satış fiyatı', <input className={ic} type="number" value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: +e.target.value })} />)}
-        <button className={btnPrimary} disabled={add.isPending} onClick={() => add.mutate()}>Varyant Ekle</button>
+        {row('Satış fiyatı', <input className={ic} type="number" value={form.salePrice === 0 ? '' : form.salePrice} onChange={(e) => setForm({ ...form, salePrice: e.target.value === '' ? 0 : +e.target.value })} />)}
+        {row('Alış fiyatı (ops.)', <input className={ic} type="number" value={form.purchasePrice === 0 ? '' : form.purchasePrice} onChange={(e) => setForm({ ...form, purchasePrice: e.target.value === '' ? 0 : +e.target.value })} />)}
+        <button className={btnPrimary} disabled={!(form.salePrice > 0) || add.isPending} onClick={() => add.mutate()}>Varyant Ekle</button>
       </div>
     </div>
   );

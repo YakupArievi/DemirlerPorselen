@@ -59,7 +59,7 @@ export function SalesScreen() {
         const unitPrice = r.unitType === 'Koli' ? r.salePrice * r.adetEquivalent : r.salePrice;
         return [...c, {
           key: crypto.randomUUID(), variantId: r.variantId,
-          name: `${r.productName} ${r.color ?? ''} ${r.size ?? ''} (${r.unitType})`.trim(),
+          name: `${r.productName} (${r.unitType})`,
           unitType: r.unitType, quantity: 1, unitPrice, lineDiscount: 0,
         }];
       });
@@ -78,7 +78,7 @@ export function SalesScreen() {
       const unitPrice = unitType === 'Koli' ? v.salePrice * v.koliIciAdet : v.salePrice;
       return [...c, {
         key: crypto.randomUUID(), variantId: v.id,
-        name: `${v.productName} ${v.color ?? ''} ${v.size ?? ''} (${unitType})`.trim(),
+        name: `${v.productName} (${unitType})`,
         unitType, quantity: 1, unitPrice, lineDiscount: 0,
       }];
     });
@@ -168,9 +168,9 @@ export function SalesScreen() {
               <tr key={i.key} className="border-t">
                 <td className="p-2">{i.name}</td>
                 <td className="p-2">{i.unitType}</td>
-                <td className="p-2"><input type="number" className={inputCls} value={i.quantity} min={1} onChange={(e) => update(i.key, { quantity: +e.target.value })} /></td>
-                <td className="p-2"><input type="number" className={inputCls} value={i.unitPrice} onChange={(e) => update(i.key, { unitPrice: +e.target.value })} /></td>
-                <td className="p-2"><input type="number" className={inputCls} value={i.lineDiscount} onChange={(e) => update(i.key, { lineDiscount: +e.target.value })} /></td>
+                <td className="p-2"><input type="number" className={inputCls} value={i.quantity === 0 ? '' : i.quantity} min={1} onChange={(e) => update(i.key, { quantity: e.target.value === '' ? 0 : +e.target.value })} /></td>
+                <td className="p-2"><input type="number" className={inputCls} value={i.unitPrice === 0 ? '' : i.unitPrice} onChange={(e) => update(i.key, { unitPrice: e.target.value === '' ? 0 : +e.target.value })} /></td>
+                <td className="p-2"><input type="number" className={inputCls} value={i.lineDiscount === 0 ? '' : i.lineDiscount} onChange={(e) => update(i.key, { lineDiscount: e.target.value === '' ? 0 : +e.target.value })} /></td>
                 <td className="p-2 text-right">{tl(i.unitPrice * i.quantity - i.lineDiscount)}</td>
                 <td className="p-2 text-right"><button className="text-red-500" onClick={() => remove(i.key)}>✕</button></td>
               </tr>
@@ -186,7 +186,7 @@ export function SalesScreen() {
           <div className="flex justify-between py-1 text-sm"><span>Satır İskontoları</span><span>-{tl(lineDiscTotal)}</span></div>
           <div className="flex items-center justify-between py-1 text-sm">
             <span>Fiş İskontosu</span>
-            <input type="number" className={inputCls + ' w-28 text-right'} value={docDiscount} onChange={(e) => setDocDiscount(+e.target.value)} />
+            <input type="number" className={inputCls + ' w-28 text-right'} value={docDiscount === 0 ? '' : docDiscount} onChange={(e) => setDocDiscount(e.target.value === '' ? 0 : +e.target.value)} />
           </div>
           <div className="mt-2 flex justify-between border-t pt-2 text-lg font-bold"><span>Genel Toplam</span><span>{tl(grandTotal)}</span></div>
 
@@ -195,7 +195,7 @@ export function SalesScreen() {
               <option value="">Peşin ödeme yok</option>
               <option value="Nakit">Nakit</option><option value="Kart">Kart</option><option value="Cek">Çek</option>
             </select>
-            <input type="number" className={inputCls + ' w-32'} placeholder="Tutar" value={payAmount} onChange={(e) => setPayAmount(+e.target.value)} disabled={!payType} />
+            <input type="number" className={inputCls + ' w-32'} placeholder="Tutar" value={payAmount === 0 ? '' : payAmount} onChange={(e) => setPayAmount(e.target.value === '' ? 0 : +e.target.value)} disabled={!payType} />
           </div>
 
           <div className="mt-3 flex gap-2">
