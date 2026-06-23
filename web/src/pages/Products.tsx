@@ -129,43 +129,46 @@ function VariantPanel({ productId, onChanged }: { productId: string; onChanged: 
     queryKey: ['variants', productId],
     queryFn: async () => (await api.get<Variant[]>(`/products/${productId}/variants`)).data,
   });
-  const [form, setForm] = useState({ color: '', size: '', koliIciAdet: 1, purchasePrice: 0, salePrice: 0, minStock: 0 });
+  const [form, setForm] = useState({ koliIciAdet: 1, purchasePrice: 0, salePrice: 0 });
   const [qr, setQr] = useState<Variant | null>(null);
   const add = useMutation({
-    mutationFn: async () => api.post('/variants', { productId, ...form }),
-    onSuccess: () => { variants.refetch(); onChanged(); setForm({ color: '', size: '', koliIciAdet: 1, purchasePrice: 0, salePrice: 0, minStock: 0 }); },
+    mutationFn: async () => api.post('/variants', { productId, minStock: 0, ...form }),
+    onSuccess: () => { variants.refetch(); onChanged(); setForm({ koliIciAdet: 1, purchasePrice: 0, salePrice: 0 }); },
   });
+
+  const ic = 'flex-1 rounded border border-slate-300 px-3 py-2';
+  const row = (label: string, input: React.ReactNode) => (
+    <div className="flex items-center gap-3">
+      <label className="w-28 shrink-0 text-sm text-slate-600">{label}</label>
+      {input}
+    </div>
+  );
 
   return (
     <div>
       <table className="mb-3 w-full text-xs">
         <thead className="text-left text-slate-500">
-          <tr><th className="p-1">Renk/Beden</th><th className="p-1">Adet QR</th><th className="p-1">Koli QR</th><th className="p-1">Koli İçi</th><th className="p-1">Alış</th><th className="p-1">Satış</th><th className="p-1">Min</th><th></th></tr>
+          <tr><th className="p-1">Adet QR</th><th className="p-1">Koli QR</th><th className="p-1">Koli İçi</th><th className="p-1">Alış</th><th className="p-1">Satış</th><th></th></tr>
         </thead>
         <tbody>
           {variants.data?.map((v) => (
             <tr key={v.id} className="border-t">
-              <td className="p-1">{v.color} {v.size}</td>
               <td className="p-1 font-mono">{v.adetBarcode}</td>
               <td className="p-1 font-mono">{v.koliBarcode}</td>
               <td className="p-1">{v.koliIciAdet}</td>
               <td className="p-1">{tl(v.purchasePrice)}</td>
               <td className="p-1">{tl(v.salePrice)}</td>
-              <td className="p-1">{v.minStock}</td>
               <td className="p-1 text-right"><button className={btnGhost} onClick={() => setQr(v)}>QR</button></td>
             </tr>
           ))}
-          {variants.data?.length === 0 && <tr><td colSpan={8} className="p-2 text-slate-400">Varyant yok</td></tr>}
+          {variants.data?.length === 0 && <tr><td colSpan={6} className="p-2 text-slate-400">Varyant yok</td></tr>}
         </tbody>
       </table>
       {qr && <QrLabelModal variant={qr} onClose={() => setQr(null)} />}
-      <div className="flex flex-wrap items-end gap-2">
-        <input className={inputCls + ' w-24'} placeholder="Renk" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
-        <input className={inputCls + ' w-20'} placeholder="Beden" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
-        <input className={inputCls + ' w-24'} type="number" placeholder="Koli içi" value={form.koliIciAdet} onChange={(e) => setForm({ ...form, koliIciAdet: +e.target.value })} />
-        <input className={inputCls + ' w-24'} type="number" placeholder="Alış" value={form.purchasePrice} onChange={(e) => setForm({ ...form, purchasePrice: +e.target.value })} />
-        <input className={inputCls + ' w-24'} type="number" placeholder="Satış" value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: +e.target.value })} />
-        <input className={inputCls + ' w-20'} type="number" placeholder="Min" value={form.minStock} onChange={(e) => setForm({ ...form, minStock: +e.target.value })} />
+      <div className="max-w-sm space-y-2">
+        {row('Koli içi adet', <input className={ic} type="number" value={form.koliIciAdet} onChange={(e) => setForm({ ...form, koliIciAdet: +e.target.value })} />)}
+        {row('Alış fiyatı', <input className={ic} type="number" value={form.purchasePrice} onChange={(e) => setForm({ ...form, purchasePrice: +e.target.value })} />)}
+        {row('Satış fiyatı', <input className={ic} type="number" value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: +e.target.value })} />)}
         <button className={btnPrimary} disabled={add.isPending} onClick={() => add.mutate()}>Varyant Ekle</button>
       </div>
     </div>

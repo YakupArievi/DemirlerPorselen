@@ -16,10 +16,10 @@ export function Modal({ title, onClose, children, wide }: {
 
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="mb-3 block">
-      <span className="mb-1 block text-sm text-slate-600">{label}</span>
-      {children}
-    </label>
+    <div className="mb-3 flex items-start gap-3">
+      <span className="w-28 shrink-0 pt-2 text-sm text-slate-600">{label}</span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
   );
 }
 

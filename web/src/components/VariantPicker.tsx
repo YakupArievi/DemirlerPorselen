@@ -43,10 +43,7 @@ export function VariantPicker({ onPick, placeholder = 'Ürün adı yaz ve listed
               onClick={() => { onPick(v); setQ(''); setOpen(false); }}
               className="flex w-full items-center justify-between gap-2 border-b px-3 py-2 text-left text-sm hover:bg-sky-50 last:border-0"
             >
-              <span>
-                <span className="font-medium">{v.productName}</span>
-                <span className="text-slate-500"> {[v.color, v.size].filter(Boolean).join(' / ')}</span>
-              </span>
+              <span className="font-medium">{v.productName}</span>
               <span className="shrink-0 text-slate-600">{tl(v.salePrice)}</span>
             </button>
           ))}
