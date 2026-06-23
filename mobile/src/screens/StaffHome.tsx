@@ -56,13 +56,13 @@ function DashTab() {
       <Text style={s.section}>Kritik Stoklar</Text>
       {(d.criticalStocks ?? []).length === 0 ? <Text style={s.dim}>Yok</Text> :
         (d.criticalStocks ?? []).map((c: any) => (
-          <Row key={c.variantId} left={`${c.productName} ${c.color ?? ''} ${c.size ?? ''}`.trim()} right={`${c.totalQuantity}/${c.minStock}`} />
+          <Row key={c.variantId} left={c.productName} right={`${c.totalQuantity}/${c.minStock}`} />
         ))}
 
       <Text style={s.section}>En Çok Satanlar (Bu Ay)</Text>
       {(d.topProducts ?? []).length === 0 ? <Text style={s.dim}>Veri yok</Text> :
         (d.topProducts ?? []).map((p: any) => (
-          <Row key={p.variantId} left={`${p.productName} ${p.color ?? ''}`.trim()} sub={`${p.soldQuantity} adet`} right={tl(p.revenue)} />
+          <Row key={p.variantId} left={p.productName} sub={`${p.soldQuantity} adet`} right={tl(p.revenue)} />
         ))}
 
       <Text style={s.section}>Son Satışlar</Text>
@@ -120,7 +120,7 @@ function SaleTab() {
     try {
       const r = (await api.get(`/variants/resolve?barcode=${encodeURIComponent(code.trim())}`)).data;
       const price = r.unitType === 'Koli' ? r.salePrice * r.adetEquivalent : r.salePrice;
-      setCart((c) => [...c, { key: Math.random().toString(36), variantId: r.variantId, name: `${r.productName} ${r.color ?? ''} (${r.unitType})`.trim(), unitType: r.unitType, quantity: 1, unitPrice: price }]);
+      setCart((c) => [...c, { key: Math.random().toString(36), variantId: r.variantId, name: `${r.productName} (${r.unitType})`, unitType: r.unitType, quantity: 1, unitPrice: price }]);
       setBarcode('');
     } catch (e) { setMsg({ ok: false, text: apiError(e) }); }
   };
@@ -298,7 +298,7 @@ function StokTab() {
       <Text style={s.section}>Depo Stoğu</Text>
       {(stock.data ?? []).length === 0 ? <Text style={s.dim}>Stok yok</Text> :
         (stock.data ?? []).map((x: any) => (
-          <Row key={x.variantId} left={`${x.productName} ${x.color ?? ''}`.trim()} sub={x.adetBarcode} right={`${x.quantity}`} />
+          <Row key={x.variantId} left={x.productName} sub={x.adetBarcode} right={`${x.quantity}`} />
         ))}
       <QrScanner visible={scan} onClose={() => setScan(false)} onScan={(code) => { setScan(false); addByCode(code); }} />
     </ScrollView>

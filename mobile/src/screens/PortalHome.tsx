@@ -131,7 +131,7 @@ function SaleDetailModal({ id, onClose }: { id: string | null; onClose: () => vo
           {q.isLoading ? <Loading /> : (
             <ScrollView>
               {(q.data?.lines ?? []).map((l: any) => (
-                <Row key={l.id} left={`${l.productName} ${l.color ?? ''} ${l.size ?? ''}`.trim()}
+                <Row key={l.id} left={l.productName}
                   sub={`${l.quantity} ${l.unitType} × ${tl(l.unitPrice)}`} right={tl(l.lineTotal)} />
               ))}
               <Card style={{ marginTop: 8 }}>
