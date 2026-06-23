@@ -13,6 +13,6 @@ body {
 /* Yazdırırken yalnızca QR etiketlerini göster */
 @media print {
   body * { visibility: hidden; }
-  #qr-print, #qr-print * { visibility: visible; }
-  #qr-print { position: absolute; left: 0; top: 0; }
+  #qr-print, #qr-print *, #receipt-print, #receipt-print * { visibility: visible; }
+  #qr-print, #receipt-print { position: absolute; left: 0; top: 0; }
 }

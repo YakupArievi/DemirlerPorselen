@@ -7,6 +7,7 @@ import { tl, dateStr } from '../lib/format';
 import { inputCls, btnPrimary, btnGhost } from '../components/Modal';
 import { VariantPicker } from '../components/VariantPicker';
 import { RowActions } from '../components/RowActions';
+import { SaleReceiptModal } from '../components/SaleReceipt';
 
 interface SaleListItem {
   id: string; saleNumber: number; customerName: string; saleDate: string;
@@ -64,6 +65,7 @@ export function SalesScreen() {
   const [payAmount, setPayAmount] = useState(0);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [receiptSaleId, setReceiptSaleId] = useState<string | null>(null);
   const barcodeRef = useRef<HTMLInputElement>(null);
   const refreshPending = useOffline((s) => s.refreshPending);
 
@@ -257,12 +259,13 @@ export function SalesScreen() {
                 <td className="p-2 text-right">{tl(s.grandTotal)}</td>
                 <td className="p-2">{s.status === 'Cancelled' ? <span className="text-red-500">İptal</span> : <span className="text-emerald-600">Aktif</span>}</td>
                 <td className="p-2 text-right">
-                  {s.status === 'Active' && (
-                    <RowActions actions={[
+                  <RowActions actions={[
+                    { label: 'Fiş / Yazdır', onClick: () => setReceiptSaleId(s.id) },
+                    ...(s.status === 'Active' ? [
                       { label: 'Düzenle', onClick: () => editSale(s) },
                       { label: 'İptal et', danger: true, onClick: () => { if (confirm(`#${s.saleNumber} satışı iptal edilsin mi? Stok ve cari geri alınır.`)) cancelSale.mutate(s.id); } },
-                    ]} />
-                  )}
+                    ] : []),
+                  ]} />
                 </td>
               </tr>
             ))}
@@ -270,6 +273,8 @@ export function SalesScreen() {
           </tbody>
         </table>
       </div>
+
+      {receiptSaleId && <SaleReceiptModal saleId={receiptSaleId} onClose={() => setReceiptSaleId(null)} />}
     </div>
   );
 }

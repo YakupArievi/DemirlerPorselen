@@ -492,3 +492,4 @@ logs/
 # Gecici calistirma loglari
 run.log
 run.err.log
+.vercel
