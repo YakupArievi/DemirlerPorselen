@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { api, apiErrorMessage } from '../api/client';
-import type { ResolvedBarcode, Sale, UnitType, Variant, Warehouse } from '../api/types';
-import { tl } from '../lib/format';
+import type { ResolvedBarcode, Sale, SaleStatus, UnitType, Variant, Warehouse } from '../api/types';
+import { tl, dateStr } from '../lib/format';
 import { inputCls, btnPrimary, btnGhost } from '../components/Modal';
 import { VariantPicker } from '../components/VariantPicker';
+import { RowActions } from '../components/RowActions';
+
+interface SaleListItem {
+  id: string; saleNumber: number; customerName: string; saleDate: string;
+  status: SaleStatus; grandTotal: number; paidAmount: number;
+}
 import { resolveBarcodeLocal, enqueue } from '../offline/sync';
 import { useOffline } from '../offline/store';
 
@@ -15,9 +21,18 @@ interface CartItem {
 }
 
 export function SalesScreen() {
+  const qc = useQueryClient();
   // Lookup: id+ad (Depocu dahil herkes erişebilir; parasal bilgi yok)
   const customers = useQuery({ queryKey: ['customers-lookup'], queryFn: async () => (await api.get<{ id: string; name: string }[]>('/customers/lookup')).data });
   const warehouses = useQuery({ queryKey: ['warehouses'], queryFn: async () => (await api.get<Warehouse[]>('/warehouses')).data });
+  const recentSales = useQuery({ queryKey: ['recent-sales'], queryFn: async () => (await api.get<{ items: SaleListItem[] }>('/sales?pageSize=10')).data.items });
+
+  // Yanlış girilen satış: silinmez, İPTAL edilir (stok + cari geri alınır). Doğrusu yeniden girilir.
+  const cancelSale = useMutation({
+    mutationFn: async (sid: string) => api.post(`/sales/${sid}/cancel`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['recent-sales'] }); setMsg({ kind: 'ok', text: 'Satış iptal edildi (stok ve cari geri alındı).' }); },
+    onError: (e) => setMsg({ kind: 'err', text: apiErrorMessage(e) }),
+  });
 
   const [customerId, setCustomerId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
@@ -116,6 +131,7 @@ export function SalesScreen() {
       const res = await api.post<Sale>('/sales', body);
       setMsg({ kind: 'ok', text: `Satış #${res.data.saleNumber} kaydedildi (${tl(res.data.grandTotal)}).` });
       setCart([]); setDocDiscount(0); setPayType(''); setPayAmount(0);
+      qc.invalidateQueries({ queryKey: ['recent-sales'] });
     } catch (e) {
       // Ağ hatası -> kuyruğa al; iş kuralı hatası -> göster
       if (axios.isAxiosError(e) && !e.response) { await queueIt(); }
@@ -203,6 +219,34 @@ export function SalesScreen() {
             <button className={btnPrimary + ' flex-1'} disabled={busy} onClick={submit}>Satışı Tamamla</button>
           </div>
         </div>
+      </div>
+
+      <div className="overflow-hidden rounded-lg bg-white shadow">
+        <div className="border-b px-4 py-3 text-sm font-medium text-slate-700">Son Satışlar</div>
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-left text-slate-500">
+            <tr><th className="p-2">Fiş</th><th className="p-2">Müşteri</th><th className="p-2">Tarih</th><th className="p-2 text-right">Tutar</th><th className="p-2">Durum</th><th></th></tr>
+          </thead>
+          <tbody>
+            {recentSales.data?.map((s) => (
+              <tr key={s.id} className="border-t">
+                <td className="p-2">#{s.saleNumber}</td>
+                <td className="p-2">{s.customerName}</td>
+                <td className="p-2">{dateStr(s.saleDate)}</td>
+                <td className="p-2 text-right">{tl(s.grandTotal)}</td>
+                <td className="p-2">{s.status === 'Cancelled' ? <span className="text-red-500">İptal</span> : <span className="text-emerald-600">Aktif</span>}</td>
+                <td className="p-2 text-right">
+                  {s.status === 'Active' && (
+                    <RowActions actions={[
+                      { label: 'İptal et', danger: true, onClick: () => { if (confirm(`#${s.saleNumber} satışı iptal edilsin mi? Stok ve cari geri alınır.`)) cancelSale.mutate(s.id); } },
+                    ]} />
+                  )}
+                </td>
+              </tr>
+            ))}
+            {recentSales.data?.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-slate-400">Henüz satış yok</td></tr>}
+          </tbody>
+        </table>
       </div>
     </div>
   );

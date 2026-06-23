@@ -4,16 +4,24 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, apiErrorMessage } from '../api/client';
 import type { Customer, Paged } from '../api/types';
 import { Modal, Field, inputCls, btnPrimary, btnGhost } from '../components/Modal';
+import { RowActions } from '../components/RowActions';
 import { tl } from '../lib/format';
 
 export function Customers() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [show, setShow] = useState(false);
+  const [editing, setEditing] = useState<Customer | null>(null);
 
   const customers = useQuery({
     queryKey: ['customers', search],
     queryFn: async () => (await api.get<Paged<Customer>>(`/customers?pageSize=100&search=${encodeURIComponent(search)}`)).data,
+  });
+
+  const del = useMutation({
+    mutationFn: async (cid: string) => api.delete(`/customers/${cid}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['customers'] }),
+    onError: (e) => alert(apiErrorMessage(e)),
   });
 
   return (
@@ -35,7 +43,15 @@ export function Customers() {
                 <td className="p-3 font-medium">{c.name}</td>
                 <td className="p-3">{c.phone ?? '-'}</td>
                 <td className={`p-3 text-right font-medium ${c.balance > 0 ? 'text-amber-600' : c.balance < 0 ? 'text-emerald-600' : ''}`}>{tl(c.balance)}</td>
-                <td className="p-3 text-right"><Link className={btnGhost} to={`/customers/${c.id}`}>Detay</Link></td>
+                <td className="p-3">
+                  <div className="flex items-center justify-end gap-2">
+                    <Link className={btnGhost} to={`/customers/${c.id}`}>Detay</Link>
+                    <RowActions actions={[
+                      { label: 'Düzenle', onClick: () => setEditing(c) },
+                      { label: 'Sil', danger: true, onClick: () => { if (confirm(`"${c.name}" silinsin mi?`)) del.mutate(c.id); } },
+                    ]} />
+                  </div>
+                </td>
               </tr>
             ))}
             {customers.data?.items.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-slate-400">Müşteri yok</td></tr>}
@@ -44,20 +60,26 @@ export function Customers() {
       </div>
 
       {show && <CustomerModal onClose={() => setShow(false)} onSaved={() => { setShow(false); qc.invalidateQueries({ queryKey: ['customers'] }); }} />}
+      {editing && <CustomerModal customer={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); qc.invalidateQueries({ queryKey: ['customers'] }); }} />}
     </div>
   );
 }
 
-function CustomerModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({ name: '', phone: '', address: '', taxNumber: '', notes: '', openingBalance: 0 });
+function CustomerModal({ customer, onClose, onSaved }: { customer?: Customer; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    name: customer?.name ?? '', phone: customer?.phone ?? '', address: customer?.address ?? '',
+    taxNumber: customer?.taxNumber ?? '', notes: customer?.notes ?? '', openingBalance: customer?.openingBalance ?? 0,
+  });
   const [error, setError] = useState('');
   const save = useMutation({
-    mutationFn: async () => api.post('/customers', form),
+    mutationFn: async () => customer
+      ? api.put(`/customers/${customer.id}`, { ...form, isActive: true })
+      : api.post('/customers', form),
     onSuccess: onSaved,
     onError: (e) => setError(apiErrorMessage(e)),
   });
   return (
-    <Modal title="Yeni Müşteri" onClose={onClose}>
+    <Modal title={customer ? 'Müşteri Düzenle' : 'Yeni Müşteri'} onClose={onClose}>
       {error && <div className="mb-3 rounded bg-red-50 p-2 text-sm text-red-600">{error}</div>}
       <Field label="Ad / Firma"><input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
       <Field label="Telefon"><input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
